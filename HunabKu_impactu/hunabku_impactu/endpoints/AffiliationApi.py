@@ -102,7 +102,8 @@ class AffiliationApi(HunabkuPluginBase):
                         "external_ids":source["external_ids"],
                         "ranking":source["ranking"],
                         "apc":source["apc"],
-                        "waiver":source["waiver"]
+                        "waiver":source["waiver"],
+                        "addresses":source["addresses"]
                     }
                 else:
                     entry["source"]={}
@@ -234,9 +235,6 @@ class AffiliationApi(HunabkuPluginBase):
     @endpoint('/api/affiliation', methods=['GET'])
     def api_affiliation(self):
         data = self.request.args.get('data')
-    
-        if not self.valid_apikey():
-            return self.apikey_error()
 
         if data=="info":
             idx = self.request.args.get('id')

@@ -102,7 +102,8 @@ class PersonApi(HunabkuPluginBase):
                         "external_ids":source["external_ids"],
                         "ranking":source["ranking"],
                         "apc":source["apc"],
-                        "waiver":source["waiver"]
+                        "waiver":source["waiver"],
+                        "addresses":source["addresses"]
                     }
                 else:
                     entry["source"]={}
@@ -240,9 +241,6 @@ class PersonApi(HunabkuPluginBase):
     @endpoint('/api/person', methods=['GET'])
     def api_person(self):
         data = self.request.args.get('data')
-    
-        if not self.valid_apikey():
-            return self.apikey_error()
 
         if data=="info":
             idx = self.request.args.get('id')
