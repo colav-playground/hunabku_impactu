@@ -2,7 +2,7 @@ from hunabku.HunabkuBase import HunabkuPluginBase, endpoint
 from bson import ObjectId
 from pymongo import MongoClient,ASCENDING,DESCENDING
 from hunabku.Config import Config, Param
-from hunabku_impactu.utils import JsonEncoder
+from hunabku_impactu.utils.encoder import JsonEncoder
 
 
 class OurDataApp(HunabkuPluginBase):
@@ -18,7 +18,7 @@ class OurDataApp(HunabkuPluginBase):
     def get_our_data(self):
         
         entry={
-            "works":self.colav_db["works"].count_documents({})
+            "works":self.colav_db["works"].count_documents({}),
             "authors":self.colav_db["person"].count_documents({"external_ids":{"$ne":[]}}),
             "affiliations":self.colav_db["affiliations"].count_documents({"external_ids":{"$ne":[]}}),
             "sources":self.colav_db["sources"].count_documents({})
