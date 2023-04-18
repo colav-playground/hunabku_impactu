@@ -2,7 +2,7 @@ from hunabku.HunabkuBase import HunabkuPluginBase, endpoint
 from bson import ObjectId
 from pymongo import MongoClient,ASCENDING,DESCENDING
 from hunabku.Config import Config, Param
-from hunabku_impactu.utils import JsonEncoder
+from hunabku_impactu.utils.encoder import JsonEncoder
 
 
 class SearchApi(HunabkuPluginBase):
@@ -33,6 +33,8 @@ class SearchApi(HunabkuPluginBase):
                 return None
         if not max_results:
             max_results=100
+        if max_results>250:
+            max_results=250
         else:
             try:
                 max_results=int(max_results)
@@ -126,6 +128,8 @@ class SearchApi(HunabkuPluginBase):
                 return None
         if not max_results:
             max_results=100
+        if max_results>250:
+            max_results=250
         else:
             try:
                 max_results=int(max_results)
@@ -141,6 +145,9 @@ class SearchApi(HunabkuPluginBase):
             group_name = ""
             group_id = ""
             for author in cursor:
+                del(author["birthdate"])
+                del(author["birthplace"])
+                del(author["marital_status"])
                 ext_ids=[]
                 for ext in author["external_ids"]:
                     if ext["source"] in ["Cédula de Ciudadanía","Cédula de Extranjería","Passaport"]:

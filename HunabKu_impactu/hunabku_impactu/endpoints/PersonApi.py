@@ -2,7 +2,7 @@ from hunabku.HunabkuBase import HunabkuPluginBase, endpoint
 from bson import ObjectId
 from pymongo import MongoClient,ASCENDING,DESCENDING
 from hunabku.Config import Config, Param
-from hunabku_impactu.utils import JsonEncoder
+from hunabku_impactu.utils.encoder import JsonEncoder
 
 class PersonApi(HunabkuPluginBase):
     config=Config()
@@ -55,6 +55,8 @@ class PersonApi(HunabkuPluginBase):
                 return None
         if not max_results:
             max_results=100
+        if max_results>250:
+            max_results=250
         else:
             try:
                 max_results=int(max_results)
