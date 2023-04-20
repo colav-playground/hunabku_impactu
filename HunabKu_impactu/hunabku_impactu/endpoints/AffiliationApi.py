@@ -55,7 +55,7 @@ class AffiliationApi(HunabkuPluginBase):
                 return None
         if not max_results:
             max_results=100
-        if max_results>250:
+        elif max_results>250:
             max_results=250
         else:
             try:
@@ -103,6 +103,7 @@ class AffiliationApi(HunabkuPluginBase):
                         "names":source["names"],
                         "external_ids":source["external_ids"],
                         "ranking":source["ranking"],
+                        "licenses":source["licenses"],
                         "apc":source["apc"],
                         "waiver":source["waiver"],
                         "addresses":source["addresses"]

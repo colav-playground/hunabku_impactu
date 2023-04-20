@@ -190,6 +190,8 @@ class SearchApi(HunabkuPluginBase):
                 return None
         if not max_results:
             max_results=100
+        elif max_results>250:
+            max_results=250
         else:
             try:
                 max_results=int(max_results)
