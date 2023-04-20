@@ -55,14 +55,14 @@ class PersonApi(HunabkuPluginBase):
                 return None
         if not max_results:
             max_results=100
-        elif max_results>250:
-            max_results=250
         else:
             try:
                 max_results=int(max_results)
             except:
                 print("Could not convert end max to int")
                 return None
+        if max_results>250:
+            max_results=250
         
         if sort=="citations" and direction=="ascending":
             cursor.sort([("citations_count.count",ASCENDING)])
