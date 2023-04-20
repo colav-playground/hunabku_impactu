@@ -81,18 +81,18 @@ class AffiliationApi(HunabkuPluginBase):
                 subjects=[]
                 for subject in entry["subjects"]:
                     sub_entry=subject.copy()
-                    sub_entry["subjects"]=[]
-                    for sub in subject["subjects"]:
-                        name=None
-                        lang=None
-                        for n in sub["names"]:
-                            if n["lang"]=="en":
-                                name=n["name"]
-                                lang=n["lang"]
-                                break
-                        
-                        sub["names"]=[{"name":name,"lang":lang}]
-                        sub_entry["subjects"].append(sub)
+                    if subject["source"]=="openalex":
+                        sub_entry["subjects"]=[]
+                        for sub in subject["subjects"]:
+                            name=None
+                            lang=None
+                            for n in sub["names"]:
+                                if n["lang"]=="en":
+                                    name=n["name"]
+                                    lang=n["lang"]
+                                    break    
+                            sub["names"]=[{"name":name,"lang":lang}]
+                            sub_entry["subjects"].append(sub)
                     subjects.append(sub_entry)
                 source=None
                 if "id" in paper["source"].keys():
