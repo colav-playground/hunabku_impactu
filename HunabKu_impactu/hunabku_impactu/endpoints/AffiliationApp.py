@@ -3,6 +3,7 @@ from bson import ObjectId
 from pymongo import MongoClient,ASCENDING,DESCENDING
 from hunabku.Config import Config, Param
 from hunabku_impactu.utils.encoder import JsonEncoder
+from hunabku_impactu.utils.bars import bars
 
 
 
@@ -15,8 +16,9 @@ class AffiliationApp(HunabkuPluginBase):
         super().__init__(hunabku)
         self.client=MongoClient(self.config.db_uri)
         self.colav_db=self.client[self.config.colav_db]
+        self.bars=bars()
 
-    def get_info(self,idx,typ,start_year=None,end_year=None):
+    def get_info(self,idx,start_year=None,end_year=None):
         initial_year=9999
         final_year = 0
 
@@ -33,7 +35,7 @@ class AffiliationApp(HunabkuPluginBase):
                 print("Could not convert end year to int")
                 return None
 
-        affiliation = self.colav_db['affiliations'].find_one({"types.type":typ,"_id":ObjectId(idx)})
+        affiliation = self.colav_db['affiliations'].find_one({"_id":ObjectId(idx)})
         if affiliation:
             name=""
             for n in affiliation["names"]:
@@ -65,17 +67,34 @@ class AffiliationApp(HunabkuPluginBase):
         else:
             return None
 
+    def get_products_by_year_by_type(self,idx):
+        data = []
+        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1}},{"year_published":1,"types":1}):
+            data.append(work)
+        result=self.bars.products_by_year_by_type(data)
+        return result
+
 
     @endpoint('/app/affiliation', methods=['GET'])
     def app_affiliation(self):
         section = self.request.args.get('section')
         tab = self.request.args.get('tab')
         data = self.request.args.get('data')
+        idx = self.request.args.get('id')
 
         if section=="info":
-            idx = self.request.args.get('id')
-            typ = self.request.args.get('type')
-            result = self.get_info(idx,typ)
+            result = self.get_info(idx)
+        elif section=="research":
+            if tab=="products":
+                plot=self.request.args.get("plot")
+                if plot:
+                    if plot=="year_type":
+                        result=self.get_products_by_year_by_type(idx)
+                    
+                else:
+                    idx = self.request.args.get('id')
+                    typ = self.request.args.get('type')
+                    result = self.get_research_products(idx)
         else:
             result=None
 
