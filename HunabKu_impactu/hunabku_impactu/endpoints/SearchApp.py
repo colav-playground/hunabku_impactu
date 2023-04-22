@@ -94,6 +94,9 @@ class SearchApp(HunabkuPluginBase):
 
         if keywords:
             search_dict["$text"]={"$search":keywords}
+            filter_cursor=self.colav_db['person'].find({"$text":{"$search":keywords},"external_ids":{"$ne":[]}},{ "score": { "$meta": "textScore" } }).sort([("score", { "$meta": "textScore" } )])
+        else:
+            filter_cursor=self.colav_db['person'].find({"external_ids":{"$ne":[]}})
 
         var_dict["score"]={"$meta":"textScore"}
 
