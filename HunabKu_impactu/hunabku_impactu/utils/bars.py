@@ -1,21 +1,24 @@
-
+#from cpi import inflate
+from currency_converter import CurrencyConverter
+from datetime import date
+from hunabku_impactu.utils.hindex import hindex
 
 class bars():
     def __init__(self):
-        self.a=1
+        pass
     
     #production of affiliations by minciencias produyct type (within the hierarchy of the viewed entity)
-
     def products_by_year_by_type(self,data):
         '''
         Returns a list of dicts of the form {x:year, y:count, type:type} sorted by year in ascending order, 
         where year is the year of publication, count is the number of publications of a given type in that year, 
         and type is the type of publication. 
 
-        Parameters:
+        Parameters
         -----------
         data: list of works
-        Returns:
+
+        Returns
         --------
         list of dicts with the format {x:year, y:count, type:typ}
         '''
@@ -48,15 +51,218 @@ class bars():
         return result_list
 
     #anual citations
+    def citations_by_year(self,data):
+        '''
+        Returns a list of dicts of the form {x:year, y:count} sorted by year in ascending order, 
+        where year is the year of publication and count is the number of citations of the work in that year.
+        
+        Parameters
+        -----------
+        data: list of citations by year
+
+        Returns
+        --------
+        list of dicts with the format {x:year, y:count}
+        '''
+
+
+        result=[]
+        for yearly in data:
+            result.append({"x":yearly["year"],"y":yearly["cited_by_count"]})
+        result_list=sorted(result_list,key=lambda x: x["x"])
+        return result_list
+        
 
     #anual APC costs
+    def apc_by_year(self,data,base_year):
+        '''
+        Returns a list of dicts of the form {x:year, y:cost} sorted by year in ascending order,
+        where year is the year of publication and cost is the cost of the APC in that year.
+
+        Parameters
+        -----------
+        data: list of works with the information about the journal
+        base_year: int with the year to which the costs will be inflated
+
+        Returns
+        --------
+        list of dicts with the format {x:year, y:cost}
+        '''
+        c = CurrencyConverter()
+        now=date.today()
+        result={}
+        for reg in data:
+            if reg["source"]["apc"]["currency"]=="USD":
+                raw_value=reg["source"]["apc"]["charges"]
+                value=inflate(raw_value,reg["year_published"],to=base_year)
+            else:
+                try:
+                    raw_value=c.convert(reg["source"]["apc"]["xcharges"], reg["source"]["apc"]["currency"], 'USD')
+                    value=inflate(raw_value,reg["year_published"],to=base_year)
+                except Exception as e:
+                    print("Could not convert currency with error: ",e)
+                    value=0
+            if reg["year_published"] not in result.keys():
+                result[reg["year_published"]]=value
+            else:
+                result[reg["year_published"]]+=value
+        sorted_result=sorted(result.items(),key=lambda x: x[0])
+        result_list=[{"x":x[0],"y":x[1]} for x in sorted_result]
+        return result_list
 
     #number of papers in openaccess or closed access
+    def OA_by_year(self,data):
+        '''
+        Returns a list of dicts of the form {x:year, y:count} sorted by year in ascending order, 
+        where year is the year of publication and count is the number of works in open access in that year.
 
-    #number of papers by editorial (top 5)
+        Parameters
+        -----------
+        data: list of works with bibliographic info
+
+        Returns
+        --------
+        list of dicts with the format {x:year, y:count}
+        '''
+        result={}
+        for work in data:
+            if "year_published" in work.keys():
+                year=work["year_published"]
+                if year not in result.keys():
+                    result[year]=0
+                if work["bibliographic_info"]["is_open_access"]:
+                    result[year]+=1
+        result_list=[{"x":x,"y":result[x]} for x in result.keys()]
+        result_list=sorted(result_list,key=lambda x: x["x"])
+        return result_list
+
+    #number of papers by editorial (top 5) in total
+    def products_by_year_by_editorial(self,data):
+        '''
+        Returns a list of dicts of the form {x:year, y:count, editorial:editorial} sorted by year in ascending order, 
+        where year is the year of publication, count is the number of works published in that year by the editorial, 
+        and editorial is the name of the editorial.
+
+        Parameters
+        -----------
+        data: list of works with sources info
+
+        Returns
+        --------
+        list of dicts with the format {x:year, y:count, editorial:editorial}
+        '''
+        result={}
+        top5={}
+        for work in data:
+            if work["source"]["publisher"]["name"] not in top5[workwork["source"]["publisher"]["name"]].keys():
+                top5[work["source"]["publisher"]["name"]]=1
+            else:
+                top5[work["source"]["publisher"]["name"]]+=1
+            if "year_published" in work.keys():
+                year=work["year_published"]
+                if year not in result.keys():
+                    result[year]={}
+                if work["source"]["publisher"]["name"] not in result[year].keys():
+                    result[year][work["bibliographic_info"]["journal"]["name"]]=1
+                else:
+                    result[year][work["bibliographic_info"]["journal"]["name"]]+=1
+
+        top5=[top for top in sorted(top5.items(),key=lambda x: x[1],reverse=True)][:5]
+
+        result_list=[]
+        for year in result.keys():
+            for editorial in result[year].keys():
+                result_list.append({"x":year,"y":result[year][editorial],"type":editorial})
+        
+        result_list=sorted(top5,key=lambda x: x["x"])
+        return result_list[:5]
 
     #Anual H index from (temoporarily) openalex citations
+    def h_index_by_year(self,data):
+        '''
+        Returns a list of dicts of the form {x:year, y:h_index} sorted by year in ascending order, 
+        where year is the year of publication and h_index is the h-index of the works published in that year.
+
+        Parameters
+        -----------
+        data: list of citations by year
+
+        Returns
+        --------
+        list of dicts with the format {x:year, y:h_index}
+        '''
+        if len(data)<=0:
+            return None
+        index_by_year=[]
+        years=set([x["year"] for x in data])
+        for year in years:
+            citation_list=[x["cited_by_count"] for x in data if x["year"]<=year]
+            index_by_year.append({"x":year,"y":hindex(citation_list)})
+        sorted_index_by_year=sorted(index_by_year,key=lambda x: x["x"])
+        return sorted_index_by_year
 
     #Anual products count by researcher category
+    def products_by_year_by_researcher(self,data):
+        '''
+        Returns a list of dicts of the form {x:year, y:count, type:researcher_type} sorted by year in ascending order, 
+        where year is the year of publication, count is the number of works published in that year by the researcher type, 
+        and researcher_type is the type of the researcher.
+
+        Parameters
+        -----------
+        data: list of works with author info
+
+        Returns
+        --------
+        list of dicts with the format {x:year, y:count, type:researcher_type}
+        '''
+        result={}
+        for work in data:
+            if "year_published" in work.keys():
+                year=work["year_published"]
+                if year not in result.keys():
+                    result[year]={}
+                if work["authors"]["researcher"]["type"] not in result[year].keys():
+                    result[year][work["bibliographic_info"]["researcher"]["type"]]=1
+                else:
+                    result[year][work["bibliographic_info"]["researcher"]["type"]]+=1
+        result_list=[]
+        for year in result.keys():
+            for researcher_type in result[year].keys():
+                result_list.append({"x":year,"y":result[year][researcher_type],"type":researcher_type})
+        
+        result_list=sorted(result_list,key=lambda x: x["x"])
+        return result_list
 
     #Anual products count by group category
+    def products_by_year_by_group_category(self,data):
+        '''
+        Returns a list of dicts of the form {x:year, y:count, type:group_category} sorted by year in ascending order, 
+        where year is the year of publication, count is the number of works published in that year by the group category, 
+        and group_category is the category of the group.
+
+        Parameters
+        -----------
+        data: list of works with group info
+
+        Returns
+        --------
+        list of dicts with the format {x:year, y:count, type:group_category}
+        '''
+        result={}
+        for work in data:
+            if "year_published" in work.keys():
+                year=work["year_published"]
+                if year not in result.keys():
+                    result[year]={}
+                if work["group"]["category"] not in result[year].keys():
+                    result[year][work["group"]["category"]]=1
+                else:
+                    result[year][work["group"]["category"]]+=1
+        result_list=[]
+        for year in result.keys():
+            for group_category in result[year].keys():
+                result_list.append({"x":year,"y":result[year][group_category],"type":group_category})
+        
+        result_list=sorted(result_list,key=lambda x: x["x"])
+        return result_list

@@ -83,7 +83,10 @@ def main():
             'flask>=1.1.2',
             'requests>=2.22.0',
             'hunabku',
-            'pymongo'
+            'pymongo',
+            'cpi',
+            'currency_converter',
+            'datetime'
         ],
     )
 
