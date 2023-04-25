@@ -64,12 +64,17 @@ class bars():
         --------
         list of dicts with the format {x:year, y:count}
         '''
-
-
-        result=[]
-        for yearly in data:
-            result.append({"x":yearly["year"],"y":yearly["cited_by_count"]})
-        result_list=sorted(result_list,key=lambda x: x["x"])
+        
+        result={}
+        for work in data:
+            for yearly in work["citations_by_year"]:
+                if yearly["year"] in result.keys():
+                    result[yearly["year"]]+=yearly["cited_by_count"]
+                else:
+                    result[yearly["year"]]=yearly["cited_by_count"]
+        result_list = sorted(result.items(),key=lambda x: x[0])
+        result_list = [{"x":x[0],"y":x[1]} for x in result_list]
+        
         return result_list
         
 

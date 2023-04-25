@@ -266,6 +266,13 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.bars.products_by_year_by_type(data)
         return {"plot":result}
 
+    def get_products_by_year_by_citations(self,idx):
+        data = []
+        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"citations_by_year":{"$ne":[]},"year_published":{"$exists":1}},{"year_published":1,"citations_by_year":1}):
+            data.append(work)
+        result=self.bars.citations_by_year(data)
+        return {"plot":result}
+
 
     @endpoint('/app/affiliation', methods=['GET'])
     def app_affiliation(self):
@@ -282,6 +289,8 @@ class AffiliationApp(HunabkuPluginBase):
                 if plot:
                     if plot=="year_type":
                         result=self.get_products_by_year_by_type(idx)
+                    if plot=="year_citations":
+                        result=self.get_products_by_year_by_citations(idx)
                     
                 else:
                     idx = self.request.args.get('id')
