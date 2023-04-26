@@ -117,7 +117,7 @@ class bars():
         return result_list
 
     #number of papers in openaccess or closed access
-    def OA_by_year(self,data):
+    def oa_by_year(self,data):
         '''
         Returns a list of dicts of the form {x:year, y:count} sorted by year in ascending order, 
         where year is the year of publication and count is the number of works in open access in that year.
@@ -132,13 +132,21 @@ class bars():
         '''
         result={}
         for work in data:
-            if "year_published" in work.keys():
-                year=work["year_published"]
-                if year not in result.keys():
-                    result[year]=0
-                if work["bibliographic_info"]["is_open_access"]:
-                    result[year]+=1
-        result_list=[{"x":x,"y":result[x]} for x in result.keys()]
+            year=work["year_published"]
+            if year in result.keys():
+                if work["bibliographic_info"]["is_open_acess"]:
+                    result[year]["open"]+=1
+                else:
+                    result[year]["closed"]+=1
+            else:
+                if work["bibliographic_info"]["is_open_acess"]:
+                    result[year]={"open":1,"closed":0}
+                else:
+                    result[year]={"open":0,"closed":1}
+        result_list=[]
+        for year in result.keys():
+            for typ in result[year].keys():
+                result_list.append({"x":year,"y":result[year][typ],"type":typ})
         result_list=sorted(result_list,key=lambda x: x["x"])
         return result_list
 

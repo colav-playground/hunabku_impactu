@@ -286,6 +286,24 @@ class AffiliationApp(HunabkuPluginBase):
                     data.append({"year_published":work["year_published"],"apc":source_db["apc"]})
         result=self.bars.apc_by_year(data,2022)
         return {"plot":result}
+
+    def get_oa_by_year(self,idx):
+        data=[]
+        for work in self.colav_db["works"].find(
+            {
+                "authors.affiliations.id":ObjectId(idx),
+                "year_published":{"$exists":1},
+                "bibliographic_info.is_open_acess":{"$exists":1}
+            },
+            {
+                "year_published":1,"bibliographic_info.is_open_acess":1
+            }
+        ):
+            data.append(work)
+        
+        result=self.bars.oa_by_year(data)
+        return {"plot":result}
+
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -307,6 +325,8 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_citations_by_year(idx)
                     if plot=="year_apc":
                         result=self.get_apc_by_year(idx)
+                    if plot=="year_oa":
+                        result=self.get_oa_by_year(idx)
                     
                 else:
                     idx = self.request.args.get('id')
