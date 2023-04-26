@@ -1,4 +1,4 @@
-#from cpi import inflate
+from cpi import inflate
 from currency_converter import CurrencyConverter
 from datetime import date
 from hunabku_impactu.utils.hindex import hindex
@@ -97,20 +97,21 @@ class bars():
         now=date.today()
         result={}
         for reg in data:
-            if reg["source"]["apc"]["currency"]=="USD":
-                raw_value=reg["source"]["apc"]["charges"]
+            if reg["apc"]["currency"]=="USD":
+                raw_value=reg["apc"]["charges"]
                 value=inflate(raw_value,reg["year_published"],to=base_year)
             else:
                 try:
-                    raw_value=c.convert(reg["source"]["apc"]["xcharges"], reg["source"]["apc"]["currency"], 'USD')
+                    raw_value=c.convert(reg["apc"]["xcharges"], reg["apc"]["currency"], 'USD')
                     value=inflate(raw_value,reg["year_published"],to=base_year)
                 except Exception as e:
-                    print("Could not convert currency with error: ",e)
+                    #print("Could not convert currency with error: ",e)
                     value=0
-            if reg["year_published"] not in result.keys():
-                result[reg["year_published"]]=value
-            else:
-                result[reg["year_published"]]+=value
+            if value:
+                if reg["year_published"] not in result.keys():
+                    result[reg["year_published"]]=value
+                else:
+                    result[reg["year_published"]]+=value
         sorted_result=sorted(result.items(),key=lambda x: x[0])
         result_list=[{"x":x[0],"y":x[1]} for x in sorted_result]
         return result_list
