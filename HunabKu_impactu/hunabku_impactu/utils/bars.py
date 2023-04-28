@@ -150,12 +150,12 @@ class bars():
         result_list=sorted(result_list,key=lambda x: x["x"])
         return result_list
 
-    #number of papers by editorial (top 5) in total
-    def products_by_year_by_editorial(self,data):
+    #number of papers by publisher (top 5) in total
+    def products_by_year_by_publisher(self,data):
         '''
-        Returns a list of dicts of the form {x:year, y:count, editorial:editorial} sorted by year in ascending order, 
-        where year is the year of publication, count is the number of works published in that year by the editorial, 
-        and editorial is the name of the editorial.
+        Returns a list of dicts of the form {x:year, y:count, type:publisher} sorted by year in ascending order, 
+        where year is the year of publication, count is the number of works published in that year by the publisher, 
+        and publisher is the name of the publisher.
 
         Parameters
         -----------
@@ -163,33 +163,36 @@ class bars():
 
         Returns
         --------
-        list of dicts with the format {x:year, y:count, editorial:editorial}
+        list of dicts with the format {x:year, y:count, type:publisher}
         '''
         result={}
-        top5={}
+        top5={} #total
         for work in data:
-            if work["source"]["publisher"]["name"] not in top5[workwork["source"]["publisher"]["name"]].keys():
-                top5[work["source"]["publisher"]["name"]]=1
-            else:
-                top5[work["source"]["publisher"]["name"]]+=1
-            if "year_published" in work.keys():
-                year=work["year_published"]
-                if year not in result.keys():
-                    result[year]={}
-                if work["source"]["publisher"]["name"] not in result[year].keys():
-                    result[year][work["bibliographic_info"]["journal"]["name"]]=1
+            year=int(work["year_published"])
+            if year in result.keys():
+                if work["publisher"]["name"] not in result[year].keys():
+                    result[year][work["publisher"]["name"]]=1
                 else:
-                    result[year][work["bibliographic_info"]["journal"]["name"]]+=1
+                    result[year][work["publisher"]["name"]]+=1
+            else:
+                result[year]={work["publisher"]["name"]:1}
+            if work["publisher"]["name"] not in top5.keys():
+                top5[work["publisher"]["name"]]=1
+            else:
+                top5[work["publisher"]["name"]]+=1
 
-        top5=[top for top in sorted(top5.items(),key=lambda x: x[1],reverse=True)][:5]
+        top5=[top[0] for top in sorted(top5.items(),key=lambda x: x[1],reverse=True)][:5]
 
         result_list=[]
         for year in result.keys():
-            for editorial in result[year].keys():
-                result_list.append({"x":year,"y":result[year][editorial],"type":editorial})
+            for publisher in top5:
+                if publisher in result[year].keys():
+                    result_list.append({"x":year,"y":result[year][publisher],"type":publisher})
+                else:
+                    result_list.append({"x":year,"y":0,"type":publisher})
         
-        result_list=sorted(top5,key=lambda x: x["x"])
-        return result_list[:5]
+        result_list=sorted(result_list,key=lambda x: x["x"])
+        return result_list
 
     #Anual H index from (temoporarily) openalex citations
     def h_index_by_year(self,data):

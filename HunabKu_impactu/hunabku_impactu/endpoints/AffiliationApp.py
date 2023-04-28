@@ -275,7 +275,7 @@ class AffiliationApp(HunabkuPluginBase):
         
     def get_apc_by_year(self,idx):
         data = []
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1}},{"year_published":1,"source":1}):
+        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1},"source.id":{"$exists":1}},{"year_published":1,"source":1}):
             if not "source" in work.keys():
                 continue
             if not "id" in work["source"].keys():
@@ -304,6 +304,30 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.bars.oa_by_year(data)
         return {"plot":result}
 
+    def get_proiducts_by_year_by_publisher(self,idx):
+        data=[]
+        for work in self.colav_db["works"].find(
+            {
+                "authors.affiliations.id":ObjectId(idx),
+                "year_published":{"$exists":1},
+                "source.id":{"$exists":1}
+            },
+            {
+                "year_published":1,"source.id":1
+            }
+        ):
+            if not "source" in work.keys():
+                continue
+            if not "id" in work["source"].keys():
+                continue
+            source_db=self.colav_db["sources"].find_one({"_id":work["source"]["id"]})
+            if source_db:
+                if source_db["publisher"]:
+                    data.append({"year_published":work["year_published"],"publisher":source_db["publisher"]})
+        
+        result=self.bars.products_by_year_by_publisher(data)
+        return {"plot":result}
+
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -321,12 +345,14 @@ class AffiliationApp(HunabkuPluginBase):
                 if plot:
                     if plot=="year_type":
                         result=self.get_products_by_year_by_type(idx)
-                    if plot=="year_citations":
+                    elif plot=="year_citations":
                         result=self.get_citations_by_year(idx)
-                    if plot=="year_apc":
+                    elif plot=="year_apc":
                         result=self.get_apc_by_year(idx)
-                    if plot=="year_oa":
+                    elif plot=="year_oa":
                         result=self.get_oa_by_year(idx)
+                    elif plot=="year_publisher":
+                        result=self.get_proiducts_by_year_by_publisher(idx)
                     
                 else:
                     idx = self.request.args.get('id')
