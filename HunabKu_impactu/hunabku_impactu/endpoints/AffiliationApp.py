@@ -335,6 +335,23 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.bars.citations_by_year(data)
         return {"plot":result}
 
+    def get_products_by_year_by_researcher_category(self,idx):
+        data=[]
+        pipeline=[
+            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$project":{"year_published":1,"authors":1}},
+            {"$unwind":"$authors"},
+            {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"researcher"}},
+            {"$project":{"year_published":1,"researcher.ranking":1}},
+            {"$match":{"researcher.ranking.source":"scienti"}}
+        ]
+        for work in self.colav_db["works"].aggregate(pipeline):
+            for researcher in work["researcher"]:
+                for rank in researcher["ranking"]:
+                    if rank["source"]=="scienti":
+                        data.append({"year_published":work["year_published"],"rank":rank["rank"]})
+        return {"plot":self.bars.products_by_year_by_researcher_category(data)}
+
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -362,6 +379,8 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_products_by_year_by_publisher(idx)
                     elif plot=="year_h":
                         result=self.get_h_by_year(idx)
+                    elif plot=="year_researcher":
+                        result=self.get_products_by_year_by_researcher_category(idx)
                     
                 else:
                     idx = self.request.args.get('id')

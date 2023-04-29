@@ -228,7 +228,7 @@ class bars():
         return sorted_index_by_year
 
     #Anual products count by researcher category
-    def products_by_year_by_researcher(self,data):
+    def products_by_year_by_researcher_category(self,data):
         '''
         Returns a list of dicts of the form {x:year, y:count, type:researcher_type} sorted by year in ascending order, 
         where year is the year of publication, count is the number of works published in that year by the researcher type, 
@@ -248,15 +248,14 @@ class bars():
                 year=work["year_published"]
                 if year not in result.keys():
                     result[year]={}
-                if work["authors"]["researcher"]["type"] not in result[year].keys():
-                    result[year][work["bibliographic_info"]["researcher"]["type"]]=1
+                if work["rank"] not in result[year].keys():
+                    result[year][work["rank"]]=1
                 else:
-                    result[year][work["bibliographic_info"]["researcher"]["type"]]+=1
+                    result[year][work["rank"]]+=1
         result_list=[]
         for year in result.keys():
-            for researcher_type in result[year].keys():
-                result_list.append({"x":year,"y":result[year][researcher_type],"type":researcher_type})
-        
+            for rank in result[year].keys():
+                result_list.append({"x":year,"y":result[year][rank],"type":rank})
         result_list=sorted(result_list,key=lambda x: x["x"])
         return result_list
 
