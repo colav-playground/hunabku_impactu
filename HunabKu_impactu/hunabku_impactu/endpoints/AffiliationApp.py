@@ -304,7 +304,7 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.bars.oa_by_year(data)
         return {"plot":result}
 
-    def get_proiducts_by_year_by_publisher(self,idx):
+    def get_products_by_year_by_publisher(self,idx):
         data=[]
         for work in self.colav_db["works"].find(
             {
@@ -326,6 +326,13 @@ class AffiliationApp(HunabkuPluginBase):
                     data.append({"year_published":work["year_published"],"publisher":source_db["publisher"]})
         
         result=self.bars.products_by_year_by_publisher(data)
+        return {"plot":result}
+
+    def get_h_by_year(self,idx):
+        data = []
+        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"citations_by_year":{"$ne":[]}},{"citations_by_year":1}):
+            data.append(work)
+        result=self.bars.citations_by_year(data)
         return {"plot":result}
 
     
@@ -352,7 +359,9 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="year_oa":
                         result=self.get_oa_by_year(idx)
                     elif plot=="year_publisher":
-                        result=self.get_proiducts_by_year_by_publisher(idx)
+                        result=self.get_products_by_year_by_publisher(idx)
+                    elif plot=="year_h":
+                        result=self.get_h_by_year(idx)
                     
                 else:
                     idx = self.request.args.get('id')

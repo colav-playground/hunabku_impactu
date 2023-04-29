@@ -198,7 +198,7 @@ class bars():
     def h_index_by_year(self,data):
         '''
         Returns a list of dicts of the form {x:year, y:h_index} sorted by year in ascending order, 
-        where year is the year of publication and h_index is the h-index of the works published in that year.
+        where year is the year of publication and h_index is the h-index of the works cited up to a selected year.
 
         Parameters
         -----------
@@ -210,10 +210,19 @@ class bars():
         '''
         if len(data)<=0:
             return None
+        h_by_year={}
+        for work in data:
+            for citation in work["citations_by_year"]:
+                year=citation["year"]
+                if year in h_by_year.keys():
+                    h_by_year[year].append(citation["cited_by_count"])
+                else:
+                    h_by_year[year] = [citation["cited_by_count"]]
+
         index_by_year=[]
-        years=set([x["year"] for x in data])
+        years=set([x[0] for x in h_by_year.items()])
         for year in years:
-            citation_list=[x["cited_by_count"] for x in data if x["year"]<=year]
+            citation_list=[x[1] for x in h_by_year.items() if x[0]<=year]
             index_by_year.append({"x":year,"y":hindex(citation_list)})
         sorted_index_by_year=sorted(index_by_year,key=lambda x: x["x"])
         return sorted_index_by_year
