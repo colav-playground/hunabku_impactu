@@ -1,6 +1,6 @@
 from cpi import inflate
 from currency_converter import CurrencyConverter
-from datetime import date
+import datetime
 from hunabku_impactu.utils.hindex import hindex
 
 class bars():
@@ -94,7 +94,7 @@ class bars():
         list of dicts with the format {x:year, y:cost}
         '''
         c = CurrencyConverter()
-        now=date.today()
+        now=datetime.date.today()
         result={}
         for reg in data:
             if reg["apc"]["currency"]=="USD":
@@ -278,12 +278,19 @@ class bars():
         for work in data:
             if "year_published" in work.keys():
                 year=work["year_published"]
-                if year not in result.keys():
-                    result[year]={}
-                if work["group"]["category"] not in result[year].keys():
-                    result[year][work["group"]["category"]]=1
-                else:
-                    result[year][work["group"]["category"]]+=1
+                year_timestamp=datetime.datetime.strptime(str(year),"%Y").timestamp()
+                rank_name=""
+                for rank in work["ranking"]:
+                    if rank["from_date"]<year_timestamp and rank["to_date"]>year_timestamp:
+                        rank_name=rank["rank"]
+                        break
+                if rank_name:
+                    if year not in result.keys():
+                        result[year]={}
+                    if rank_name not in result[year].keys():
+                        result[year][rank_name]=1
+                    else:
+                        result[year][rank_name]+=1
         result_list=[]
         for year in result.keys():
             for group_category in result[year].keys():

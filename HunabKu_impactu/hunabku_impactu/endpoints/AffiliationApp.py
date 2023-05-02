@@ -4,6 +4,7 @@ from pymongo import MongoClient,ASCENDING,DESCENDING
 from hunabku.Config import Config, Param
 from hunabku_impactu.utils.encoder import JsonEncoder
 from hunabku_impactu.utils.bars import bars
+from hunabku_impactu.utils.pies import pies
 
 
 
@@ -17,6 +18,7 @@ class AffiliationApp(HunabkuPluginBase):
         self.client=MongoClient(self.config.db_uri)
         self.colav_db=self.client[self.config.colav_db]
         self.bars=bars()
+        self.pies=pies()
 
     def get_info(self,idx,start_year=None,end_year=None):
         initial_year=9999
@@ -352,6 +354,46 @@ class AffiliationApp(HunabkuPluginBase):
                         data.append({"year_published":work["year_published"],"rank":rank["rank"]})
         return {"plot":self.bars.products_by_year_by_researcher_category(data)}
 
+    def get_products_by_year_by_group_category(self,idx):
+        data=[]
+        info_db=self.colav_db["affiliations"].find_one({"_id":ObjectId(idx)},{"types":1,"relations":1,"ranking":1})
+        db_type=""
+        for typ in info_db["types"]:
+            if typ["type"]=="group":
+                db_type=typ["type"]
+                break
+            elif typ["type"]=="department":
+                db_type=typ["type"]
+                break
+            elif typ["type"]=="faculty":
+                db_type=typ["type"]
+                break
+            else:
+                db_type="institution"
+                break
+
+        if db_type=="group":
+            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1}},{"year_published":1}):
+                work["ranking"]=info_db["ranking"]
+                data.append(work)
+        else:
+            for group in info_db["relations"]:
+                for typ in group["types"]:
+                    if "type" in typ.keys():
+                        if typ["type"]=="group":
+                            info_group=self.colav_db["affiliations"].find_one({"_id":ObjectId(group["id"])},{"ranking":1})
+                            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(group["id"]),"year_published":{"$exists":1}},{"year_published":1}):
+                                work["ranking"]=info_group["ranking"]
+                                data.append(work)
+        print(data)
+        return{"plot":self.bars.products_by_year_by_group_category(data)}
+
+    def get_title_words(self,idx):
+        data=[]
+        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"titles":{"$exists":1}},{"titles":1}):
+            data.append(work)
+        return {"plot":self.pies.most_used_words(data)}
+
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -360,6 +402,8 @@ class AffiliationApp(HunabkuPluginBase):
         tab = self.request.args.get('tab')
         data = self.request.args.get('data')
         idx = self.request.args.get('id')
+        
+        result = None
 
         if section=="info":
             result = self.get_info(idx)
@@ -381,6 +425,10 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_h_by_year(idx)
                     elif plot=="year_researcher":
                         result=self.get_products_by_year_by_researcher_category(idx)
+                    elif plot=="year_group":
+                        result=self.get_products_by_year_by_group_category(idx)
+                    elif plot=="title_words":
+                        result=self.get_title_words(idx)
                     
                 else:
                     idx = self.request.args.get('id')
