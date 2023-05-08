@@ -173,8 +173,31 @@ class pies():
         return result_list
 
     # Ammount of papers per database
+    def products_by_database(self,data):
+        results={}
+        for work in data:
+            for source in work:
+                if source["source"] in results.keys():
+                    results[source["source"]]+=1
+                else:
+                    results[source["source"]]=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
 
     # Ammount of papers per open access status
+    def products_by_open_access_status(self,data):
+        results={}
+        for status in data:
+            if status in results:
+                results[status]+=1
+            else:
+                results[status]=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
 
     # Ammount of papers per author sex
 

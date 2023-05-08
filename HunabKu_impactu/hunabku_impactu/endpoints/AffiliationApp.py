@@ -394,9 +394,18 @@ class AffiliationApp(HunabkuPluginBase):
             data.append(work)
         return {"plot":self.pies.most_used_words(data)}
     
-    def get_citations_by_affiliations(self,idx):
+    def get_citations_by_affiliations(self,idx,typ):
         affiliations=[]
-        return None
+        aff_info=self.colav_db["affiliations"].find_one({"_id":ObjectId(idx)},{"relations":1,"types":1})
+        if not typ in ["group","department","faculty"]:
+            return None
+        for relation in aff_info["relations"]:
+            for typ in relation["types"]:
+                if typ["type"]==typ:
+                    affiliations.append(relation["id"])
+        data=[]
+        #for work in self.colav_db["works"].find({"authors.affiliations.id":{"$in":affiliations},"citations_count":{"$ne":[]}},{"citations_count":1}):
+
 
     def get_products_by_publisher(self,idx):
         data=[]
@@ -448,6 +457,31 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.pies.products_by_subject(data)
         return {"plot":result}
 
+    def get_products_by_database(self,idx):
+        data=[]
+        for work in self.colav_db["works"].find(
+            {
+                "authors.affiliations.id":ObjectId(idx)
+            },{"updated":1}
+        ):
+            data.append(work["updated"])
+        
+        result=self.pies.products_by_database(data)
+        return {"plot":result}
+
+    def get_products_by_open_access_status(self,idx):
+        data=[]
+        for work in self.colav_db["works"].find(
+            {
+                "authors.affiliations.id":ObjectId(idx),
+                "bibliographic_info.open_access_status":{"$exists":1,"$ne":None}
+            },{"bibliographic_info.open_access_status":1}
+        ):
+            data.append(work["bibliographic_info"]["open_access_status"])
+        
+        result=self.pies.products_by_open_access_status(data)
+        return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["type"]!="closed"])}
+
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -484,12 +518,18 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="title_words":
                         result=self.get_title_words(idx)
                     elif plot=="citations_affiliations":
-                        result = self.get_citations_by_affiliations(idx)
+                        typ = self.request.args.get('type')
+                        result = self.get_citations_by_affiliations(idx,typ)
                     elif plot=="products_publisher":
                         result=self.get_products_by_publisher(idx)
                     elif plot=="products_subject":
                         level=self.request.args.get('level')
                         result=self.get_products_by_subject(idx,level)
+                    elif plot=="products_database":
+                        result=self.get_products_by_database(idx)
+                    elif plot=="products_oa":
+                        result=self.get_products_by_open_access_status(idx)
+
                     
                 else:
                     idx = self.request.args.get('id')
