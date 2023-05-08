@@ -62,10 +62,9 @@ class pies():
         for top in topN:
             results.append({"type":top[0],"value":top[1]})
         return results     
-            
 
     #Accumulated citations for each faculty department or group
-    def citations_by_affiliation(data):
+    def citations_by_affiliation(self,data):
         results={}
         for work in data:
             citations=0
@@ -76,52 +75,102 @@ class pies():
                 elif count["source"]=="openalex":
                     citations=count["count"]
                     break
-        
+            if citations==0:
+                continue
+            for affiliation in work["affiliations"]:
+                if affiliation["name"] in results.keys():
+                    results[affiliation["name"]]+=1
+                else:
+                    results[affiliation["name"]]=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list      
 
 
-#Accumulated papers for each faculty department or group
+    #Accumulated papers for each faculty department or group
+    def papers_by_affiliation(self,data):
+        results={}
+        for work in data:
+            if work["affiliations"]==[]:
+                continue
+            for affiliation in work["affiliations"]:
+                if affiliation["name"] in results.keys():
+                    results[affiliation["name"]]+=1
+                else:
+                    results[affiliation["name"]]=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
 
-#APC cost for each faculty department or group
+    #APC cost for each faculty department or group
+    def apc_by_affiliation(self,data):
+        results={}
+        for work in data:
+            if work["affiliations"]==[]:
+                continue
+            for affiliation in work["affiliations"]:
+                if affiliation["name"] in results.keys():
+                    results[affiliation["name"]]+=work["apc"]
+                else:
+                    results[affiliation["name"]]=work["apc"]
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
 
-# H index for each faculty department or group
-def hindex_by_affiliation(data):
-    results={}
-    for work in data:
-        citations=0
-        for count in work["citations_count"]:
-            if count["source"]=="scholar":
-                citations=count["count"]
-                break
-            elif count["source"]=="openalex":
-                citations=count["count"]
-                break
-        if citations==0:
-            continue
-        if work["affiliations"]==[]:
-            continue
-        for affiliation in work["affiliations"]:
-            if affiliation["name"] in results.keys():
-                results[affiliation["name"]].append(citations)
-            else:
-                results[affiliation["name"]]=[citations]
-    for affiliation in results.keys():
-        results[affiliation]=hindex(results[affiliation])
-    return results
+    # H index for each faculty department or group
+    def hindex_by_affiliation(self,data):
+        results={}
+        for work in data:
+            citations=0
+            for count in work["citations_count"]:
+                if count["source"]=="scholar":
+                    citations=count["count"]
+                    break
+                elif count["source"]=="openalex":
+                    citations=count["count"]
+                    break
+            if citations==0:
+                continue
+            if work["affiliations"]==[]:
+                continue
+            for affiliation in work["affiliations"]:
+                if affiliation["name"] in results.keys():
+                    results[affiliation["name"]].append(citations)
+                else:
+                    results[affiliation["name"]]=[citations]
+        for affiliation in results.keys():
+            results[affiliation]=hindex(results[affiliation])
+        return results
 
-# Ammount of papers per publisher
+    # Ammount of papers per publisher
+    def products_by_publisher(self,data):
+        results={}
+        for work in data:
+            if work["publisher"]["name"]:
+                if work["publisher"]["name"] in results.keys():
+                    results[work["publisher"]["name"]]+=1
+                else:
+                    results[work["publisher"]["name"]]=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
 
-# ammount aof papers per openalex subject
+    # ammount of papers per openalex subject
 
-# Ammount of papers per database
+    # Ammount of papers per database
 
-# Ammount of papers per open access status
+    # Ammount of papers per open access status
 
-# Ammount of papers per author sex
+    # Ammount of papers per author sex
 
-# Ammount of papers per author age intervals
+    # Ammount of papers per author age intervals
 
-# Ammount of papers per scienti rank
+    # Ammount of papers per scienti rank
 
-# Ammount of papers per journal on scimago
+    # Ammount of papers per journal on scimago
 
-# Ammmount of papers published on a journal of the same 
+    # Ammmount of papers published on a journal of the same 

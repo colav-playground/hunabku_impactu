@@ -5,7 +5,7 @@ from hunabku.Config import Config, Param
 from hunabku_impactu.utils.encoder import JsonEncoder
 from hunabku_impactu.utils.bars import bars
 from hunabku_impactu.utils.pies import pies
-
+from math import nan
 
 
 class AffiliationApp(HunabkuPluginBase):
@@ -393,6 +393,30 @@ class AffiliationApp(HunabkuPluginBase):
         for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"titles":{"$exists":1}},{"titles":1}):
             data.append(work)
         return {"plot":self.pies.most_used_words(data)}
+    
+    def get_citations_by_affiliations(self,idx):
+        affiliations=[]
+        return None
+
+    def get_products_by_publisher(self,idx):
+        data=[]
+        for work in self.colav_db["works"].find(
+            {
+                "authors.affiliations.id":ObjectId(idx),
+                "source.id":{"$exists":1}
+            },{"source.id":1}
+        ):
+            if not "source" in work.keys():
+                continue
+            if not "id" in work["source"].keys():
+                continue
+            source_db=self.colav_db["sources"].find_one({"_id":work["source"]["id"],"publisher.name":{"$ne":nan}})
+            if source_db:
+                if source_db["publisher"]:
+                    data.append({"publisher":source_db["publisher"]})
+        
+        result=self.pies.products_by_publisher(data)
+        return {"plot":result}
 
     
 
@@ -429,6 +453,10 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_products_by_year_by_group_category(idx)
                     elif plot=="title_words":
                         result=self.get_title_words(idx)
+                    elif plot=="citations_affiliations":
+                        result = self.get_citations_by_affiliations(idx)
+                    elif plot=="products_publisher":
+                        result=self.get_products_by_publisher(idx)
                     
                 else:
                     idx = self.request.args.get('id')
