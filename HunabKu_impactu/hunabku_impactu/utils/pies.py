@@ -160,6 +160,17 @@ class pies():
         return result_list
 
     # ammount of papers per openalex subject
+    def products_by_subject(self,data):
+        results={}
+        for subject in data:
+            if subject["subject"]["name"] in results.keys():
+                results[subject["subject"]["name"]]+=1
+            else:
+                results[subject["subject"]["name"]]=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
 
     # Ammount of papers per database
 

@@ -417,6 +417,36 @@ class AffiliationApp(HunabkuPluginBase):
         
         result=self.pies.products_by_publisher(data)
         return {"plot":result}
+    
+    def get_products_by_subject(self,idx,level=0):
+        if not level:
+            level=0
+        data=[]
+        for work in self.colav_db["works"].find(
+            {
+                "authors.affiliations.id":ObjectId(idx),
+                "subjects":{"$exists":1}
+            },{"subjects":1}
+        ):
+            if not "subjects" in work.keys():
+                continue
+            for subjects in work["subjects"]:
+                if subjects["source"]!="openalex":
+                    continue
+                for subject in subjects["subjects"]:
+                    if subject["level"]!=level:
+                        continue
+                    name=subject["names"][0]["name"]
+                    for n in subject["names"]:
+                        if n["lang"]=="es":
+                            name=n["name"]
+                            break
+                        elif n["lang"]=="en":
+                            name=n["name"]
+                    data.append({"subject":{"name":name}})
+        
+        result=self.pies.products_by_subject(data)
+        return {"plot":result}
 
     
 
@@ -457,6 +487,9 @@ class AffiliationApp(HunabkuPluginBase):
                         result = self.get_citations_by_affiliations(idx)
                     elif plot=="products_publisher":
                         result=self.get_products_by_publisher(idx)
+                    elif plot=="products_subject":
+                        level=self.request.args.get('level')
+                        result=self.get_products_by_subject(idx,level)
                     
                 else:
                     idx = self.request.args.get('id')
