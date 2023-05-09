@@ -200,6 +200,17 @@ class pies():
         return result_list
 
     # Ammount of papers per author sex
+    def products_by_sex(self,data):
+        results={}
+        for work in data:
+            if work["author"][0]["sex"] in results.keys():
+                results[work["author"][0]["sex"]]+=1
+            else:
+                results[work["author"][0]["sex"]]=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
 
     # Ammount of papers per author age intervals
 

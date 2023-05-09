@@ -481,6 +481,22 @@ class AffiliationApp(HunabkuPluginBase):
         
         result=self.pies.products_by_open_access_status(data)
         return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["type"]!="closed"])}
+    
+    def get_products_by_author_sex(self,idx):
+        data=[]
+        pipeline=[
+            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$project":{"authors":1}},
+            {"$unwind":"$authors"},
+            {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
+            {"$project":{"author.sex":1}},
+            {"$match":{"author.sex":{"$ne":"","$exists":1}}}
+        ]
+        for work in self.colav_db["works"].aggregate(pipeline):
+            #print(data)
+            data.append(work)
+        result=self.pies.products_by_sex(data)
+        return {"plot":result}
 
     
 
@@ -529,6 +545,8 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_products_by_database(idx)
                     elif plot=="products_oa":
                         result=self.get_products_by_open_access_status(idx)
+                    elif plot=="products_sex":
+                        result=self.get_products_by_author_sex(idx)
 
                     
                 else:
