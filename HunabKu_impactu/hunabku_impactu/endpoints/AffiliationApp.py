@@ -498,6 +498,13 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.pies.products_by_sex(data)
         return {"plot":result}
 
+    def get_products_by_rank(self,idx):
+        data=[]
+        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"ranking":{"$ne":[]}},{"ranking":1}):
+            data.append(work)
+        result=self.pies.products_by_rank(data)
+        return {"plot":result}
+
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -547,6 +554,9 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_products_by_open_access_status(idx)
                     elif plot=="products_sex":
                         result=self.get_products_by_author_sex(idx)
+                    elif plot=="products_rank":
+                        result=self.get_products_by_rank(idx)
+
 
                     
                 else:

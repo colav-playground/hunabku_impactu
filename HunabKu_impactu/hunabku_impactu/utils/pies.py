@@ -212,9 +212,26 @@ class pies():
             result_list.append({"type":idx,"value":value})
         return result_list
 
-    # Ammount of papers per author age intervals
+    # Ammount of papers per author age intervals 14-16 años, 27-59 años 60 años en adelante
 
     # Ammount of papers per scienti rank
+    def products_by_rank(self,data):
+        results={}
+        for work in data:
+            rank=None
+            for ranking in work["ranking"]:
+                if ranking["source"]=="scienti":
+                    rank=ranking["rank"].split("_")[-1]
+                    break
+            if rank in ["A","A1","B","C","D"]:
+                if rank in results.keys():
+                    results[rank]+=1
+                else:
+                    results[rank]=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
 
     # Ammount of papers per journal on scimago
 
