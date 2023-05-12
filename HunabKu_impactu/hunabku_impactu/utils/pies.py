@@ -212,7 +212,22 @@ class pies():
             result_list.append({"type":idx,"value":value})
         return result_list
 
-    # Ammount of papers per author age intervals 14-16 años, 27-59 años 60 años en adelante
+    # Ammount of papers per author age intervals 14-26 años, 27-59 años 60 años en adelante
+    def products_by_age(self,data):
+        ranges={"14-26":(14,26),"27-59":(27,59),"60+":(60,999)}
+        results={"14-26":0,"27-59":0,"60+":0}
+        for work in data:
+            birthdate=datetime.datetime.fromtimestamp(work["author"][0]["birthdate"]).year
+            date_published=datetime.datetime.fromtimestamp(work["date_published"]).year
+            age=(date_published-birthdate)
+            for name,(date_low,date_high) in ranges.items():
+                if age<date_high and age>date_low:
+                    results[name]+=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
+            
 
     # Ammount of papers per scienti rank
     def products_by_rank(self,data):

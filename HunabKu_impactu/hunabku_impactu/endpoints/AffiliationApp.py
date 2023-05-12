@@ -493,9 +493,24 @@ class AffiliationApp(HunabkuPluginBase):
             {"$match":{"author.sex":{"$ne":"","$exists":1}}}
         ]
         for work in self.colav_db["works"].aggregate(pipeline):
-            #print(data)
             data.append(work)
         result=self.pies.products_by_sex(data)
+        return {"plot":result}
+
+    def get_products_by_author_age(self,idx):
+        data=[]
+        pipeline=[
+            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$project":{"authors":1,"date_published":1,"year_published":1}},
+            {"$unwind":"$authors"},
+            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
+            {"$project":{"author.birthdate":1,"date_published":1,"year_published":1}},
+            {"$match":{"author.birthdate":{"$ne":-1,"$exists":1}}}
+        ]
+        for work in self.colav_db["works"].aggregate(pipeline):
+            data.append(work)
+        result=self.pies.products_by_age(data)
         return {"plot":result}
 
     def get_products_by_rank(self,idx):
@@ -554,6 +569,8 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_products_by_open_access_status(idx)
                     elif plot=="products_sex":
                         result=self.get_products_by_author_sex(idx)
+                    elif plot=="products_age":
+                        result=self.get_products_by_author_age(idx)
                     elif plot=="products_rank":
                         result=self.get_products_by_rank(idx)
 
