@@ -513,11 +513,25 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.pies.products_by_age(data)
         return {"plot":result}
 
-    def get_products_by_rank(self,idx):
+    def get_products_by_scienti_rank(self,idx):
         data=[]
         for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"ranking":{"$ne":[]}},{"ranking":1}):
             data.append(work)
-        result=self.pies.products_by_rank(data)
+        result=self.pies.products_by_scienti_rank(data)
+        return {"plot":result}
+
+    def get_products_by_scimago_rank(self,idx):
+        data=[]
+        pipeline=[
+            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$project":{"source":1,"date_published":1}},
+            {"$lookup":{"from":"sources","localField":"source.id","foreignField":"_id","as":"source"}},
+            {"$unwind":"$source"},
+            {"$project":{"source.ranking":1,"date_published":1}}
+        ]
+        for work in self.colav_db["works"].aggregate(pipeline):
+            data.append(work)
+        result=self.pies.products_by_scimago_rank(data)
         return {"plot":result}
 
     
@@ -571,8 +585,10 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_products_by_author_sex(idx)
                     elif plot=="products_age":
                         result=self.get_products_by_author_age(idx)
-                    elif plot=="products_rank":
-                        result=self.get_products_by_rank(idx)
+                    elif plot=="scienti_rank":
+                        result=self.get_products_by_scienti_rank(idx)
+                    elif plot=="scimago_rank":
+                        result=self.get_products_by_scimago_rank(idx)
 
 
                     

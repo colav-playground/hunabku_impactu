@@ -230,7 +230,7 @@ class pies():
             
 
     # Ammount of papers per scienti rank
-    def products_by_rank(self,data):
+    def products_by_scienti_rank(self,data):
         results={}
         for work in data:
             rank=None
@@ -249,5 +249,20 @@ class pies():
         return result_list
 
     # Ammount of papers per journal on scimago
+    def products_by_scimago_rank(self,data):
+        results={}
+        for work in data:
+            for ranking in work["source"]["ranking"]:
+                if ranking["source"]=="scimago Best Quartile":
+                    if ranking["from_date"]<work["date_published"] and ranking["to_date"]>work["date_published"]:
+                        if ranking["rank"] in results.keys():
+                            results[ranking["rank"]]+=1
+                        else:
+                            results[ranking["rank"]]=1
+                        break
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list
 
     # Ammmount of papers published on a journal of the same 
