@@ -265,4 +265,21 @@ class pies():
             result_list.append({"type":idx,"value":value})
         return result_list
 
-    # Ammmount of papers published on a journal of the same 
+    # Ammmount of papers published on a journal of the same institution
+    def products_editorial_same_institution(self,data,institution):
+        results={
+            "same":0,
+            "different":0
+        }
+        names=list(set([n["name"].lower() for n in institution["names"]]))
+
+        for work in data:
+            if work["source"]["publisher"]["name"]:
+                if work["source"]["publisher"]["name"].lower() in names:
+                    results["same"]+=1
+                else:
+                    results["different"]+=1
+        result_list=[]
+        for idx,value in results.items():
+            result_list.append({"type":idx,"value":value})
+        return result_list

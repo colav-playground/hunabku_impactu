@@ -69,6 +69,25 @@ class AffiliationApp(HunabkuPluginBase):
             return {"data": entry, "filters": filters }
         else:
             return None
+
+    def get_affiliations(self,idx):
+        data={"departments":[],"faculties":[],"groups":[]}
+
+        for aff in self.colav_db['affiliations'].find({"relations.id":ObjectId(idx)},{"types":1,"names":1}):
+            if aff["types"]:
+                for typ in aff["types"]:
+                    if typ["type"]=="group":
+                        data["groups"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
+                        break
+                    elif typ["type"]=="department":
+                        data["departments"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
+                        break
+                    elif typ["type"]=="faculty":
+                        data["faculties"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
+                        break
+
+        return data
+        
         
     def get_research_products(self,idx,typ=None,start_year=None,end_year=None,page=None,max_results=None,sort=None):
         papers=[]
@@ -534,6 +553,22 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.pies.products_by_scimago_rank(data)
         return {"plot":result}
 
+    def get_publisher_same_institution(self,idx):
+        data=[]
+        institution=self.colav_db["affiliations"].find_one({"_id":ObjectId(idx)},{"names":1})
+        pipeline=[
+            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$project":{"source":1}},
+            {"$lookup":{"from":"sources","localField":"source.id","foreignField":"_id","as":"source"}},
+            {"$unwind":"$source"},
+            {"$project":{"source.publisher":1}},
+            {"$match":{"source.publisher":{"$ne":nan,"$exists":1,"$ne":""},"source.publisher.name":{"$ne":nan}}}
+        ]
+        for work in self.colav_db["works"].aggregate(pipeline):
+            data.append(work)
+        result=self.pies.products_editorial_same_institution(data,institution)
+        return {"plot":result}
+
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -547,6 +582,8 @@ class AffiliationApp(HunabkuPluginBase):
 
         if section=="info":
             result = self.get_info(idx)
+        elif section=="affiliations":
+            result = self.get_affiliations(idx)
         elif section=="research":
             if tab=="products":
                 plot=self.request.args.get("plot")
@@ -589,6 +626,8 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_products_by_scienti_rank(idx)
                     elif plot=="scimago_rank":
                         result=self.get_products_by_scimago_rank(idx)
+                    elif plot=="published_institution":
+                        result=self.get_publisher_same_institution(idx)
 
 
                     
