@@ -228,6 +228,10 @@ class SearchApp(HunabkuPluginBase):
                         name=n["name"]
 
                 entry["name"]=name
+                logo=""
+                for ext in affiliation["external_urls"]:
+                    if ext["source"]=="logo":
+                        logo=ext["url"]
 
                 affiliation_list.append(entry)
     
