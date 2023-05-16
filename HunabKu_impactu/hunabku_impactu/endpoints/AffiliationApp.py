@@ -592,9 +592,24 @@ class AffiliationApp(HunabkuPluginBase):
             {"$unwind":"$affiliation.addresses"}
         ]
         for work in self.colav_db["works"].aggregate(pipeline):
-            #print(work)
             data.append(work)
         result=self.maps.get_coauthorship_world_map(data)
+        return {"plot":result}
+    
+    def get_coauthorships_colombiamap(self,idx):
+        data=[]
+        pipeline=[
+            {"$unwind":"$authors"},
+            {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
+            {"$unwind":"$_id"},
+            {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
+            {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.city":1}},
+            {"$unwind":"$affiliation"},
+            {"$unwind":"$affiliation.addresses"}
+        ]
+        for work in self.colav_db["works"].aggregate(pipeline):
+            data.append(work)
+        result=self.maps.get_coauthorship_colombia_map(data)
         return {"plot":result}
 
     
@@ -658,6 +673,8 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_publisher_same_institution(idx)
                     elif plot=="collaboration_worldmap":
                         result=self.get_coauthorships_worldmap(idx)
+                    elif plot=="collaboration_colombiamap":
+                        result=self.get_coauthorships_colombiamap(idx)
 
 
                     
