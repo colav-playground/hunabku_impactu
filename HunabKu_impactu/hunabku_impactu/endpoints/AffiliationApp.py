@@ -5,6 +5,7 @@ from hunabku.Config import Config, Param
 from hunabku_impactu.utils.encoder import JsonEncoder
 from hunabku_impactu.utils.bars import bars
 from hunabku_impactu.utils.pies import pies
+from hunabku_impactu.utils.maps import maps
 from math import nan
 
 
@@ -19,6 +20,7 @@ class AffiliationApp(HunabkuPluginBase):
         self.colav_db=self.client[self.config.colav_db]
         self.bars=bars()
         self.pies=pies()
+        self.maps=maps()
 
     def get_info(self,idx,start_year=None,end_year=None):
         initial_year=9999
@@ -415,15 +417,24 @@ class AffiliationApp(HunabkuPluginBase):
     
     def get_citations_by_affiliations(self,idx,typ):
         affiliations=[]
-        aff_info=self.colav_db["affiliations"].find_one({"_id":ObjectId(idx)},{"relations":1,"types":1})
+        affiliations_names=[]
         if not typ in ["group","department","faculty"]:
             return None
-        for relation in aff_info["relations"]:
-            for typ in relation["types"]:
-                if typ["type"]==typ:
-                    affiliations.append(relation["id"])
-        data=[]
-        #for work in self.colav_db["works"].find({"authors.affiliations.id":{"$in":affiliations},"citations_count":{"$ne":[]}},{"citations_count":1}):
+        for aff in self.colav_db["affiliations"].find({"relations.id":ObjectId(idx),"types.type":typ}):
+            name=aff["names"][0]["name"]
+            for n in aff["names"]:
+                if n["lang"]=="es":
+                    name=n["name"]
+                    break
+                if n["lang"]=="en":
+                    name=n["name"]
+            affiliations.append((aff["_id"],name))
+        data={}
+        for aff,name in affiliations:
+            data[name]=[]
+            for work in self.colav_db["works"].find({"authors.affiliations.id":aff,"citations_count":{"$ne":[]}},{"citations_count":1}):
+                data[name].append(work)
+        return {"plot":self.pies.citations_by_affiliation(data)}
 
 
     def get_products_by_publisher(self,idx):
@@ -569,6 +580,23 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.pies.products_editorial_same_institution(data,institution)
         return {"plot":result}
 
+    def get_coauthorships_worldmap(self,idx):
+        data=[]
+        pipeline=[
+            {"$unwind":"$authors"},
+            {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
+            {"$unwind":"$_id"},
+            {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
+            {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.country":1}},
+            {"$unwind":"$affiliation"},
+            {"$unwind":"$affiliation.addresses"}
+        ]
+        for work in self.colav_db["works"].aggregate(pipeline):
+            #print(work)
+            data.append(work)
+        result=self.maps.get_coauthorship_world_map(data)
+        return {"plot":result}
+
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -628,6 +656,8 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_products_by_scimago_rank(idx)
                     elif plot=="published_institution":
                         result=self.get_publisher_same_institution(idx)
+                    elif plot=="collaboration_worldmap":
+                        result=self.get_coauthorships_worldmap(idx)
 
 
                     

@@ -66,22 +66,23 @@ class pies():
     #Accumulated citations for each faculty department or group
     def citations_by_affiliation(self,data):
         results={}
-        for work in data:
-            citations=0
-            for count in work["citations_count"]:
-                if count["source"]=="scholar":
-                    citations=count["count"]
-                    break
-                elif count["source"]=="openalex":
-                    citations=count["count"]
-                    break
-            if citations==0:
-                continue
-            for affiliation in work["affiliations"]:
-                if affiliation["name"] in results.keys():
-                    results[affiliation["name"]]+=1
+        for name,works in data.items():
+            for work in works:
+                citations=0
+                for count in work["citations_count"]:
+                    if count["source"]=="scholar":
+                        citations=count["count"]
+                        break
+                    elif count["source"]=="openalex":
+                        citations=count["count"]
+                        break
+                if citations==0:
+                    continue
+                if name in results.keys():
+                    results[name]+=1
                 else:
-                    results[affiliation["name"]]=1
+                    results[name]=1
+        
         result_list=[]
         for idx,value in results.items():
             result_list.append({"type":idx,"value":value})
