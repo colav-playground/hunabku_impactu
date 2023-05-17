@@ -14,10 +14,12 @@ class AffiliationApp(HunabkuPluginBase):
     config += Param(db_uri="mongodb://localhost:27017/",
                     doc="MongoDB string connection")
     config+=Param(colav_db="colombia_udea")
+    config+=Param(impactu_db="colombia_impactu")
     def __init__(self, hunabku):
         super().__init__(hunabku)
         self.client=MongoClient(self.config.db_uri)
         self.colav_db=self.client[self.config.colav_db]
+        self.impactu_db=self.client[self.config.impactu_db]
         self.bars=bars()
         self.pies=pies()
         self.maps=maps()
@@ -612,6 +614,12 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.maps.get_coauthorship_colombia_map(data)
         return {"plot":result}
 
+    def get_coauthorships_network(self, idx):
+        data=self.impactu_db["affiliations"].find_one({"_id":ObjectId(idx)},{"coauthorship_network":1})["coauthorship_network"]
+        if data:
+            return {"plot":data}
+        else:
+            return None
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -675,6 +683,8 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_coauthorships_worldmap(idx)
                     elif plot=="collaboration_colombiamap":
                         result=self.get_coauthorships_colombiamap(idx)
+                    elif plot=="collaboration_network":
+                        result=self.get_coauthorships_network(idx)
 
 
                     
