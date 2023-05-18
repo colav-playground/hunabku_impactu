@@ -90,18 +90,9 @@ class pies():
 
 
     #Accumulated papers for each faculty department or group
-    def papers_by_affiliation(self,data):
-        results={}
-        for work in data:
-            if work["affiliations"]==[]:
-                continue
-            for affiliation in work["affiliations"]:
-                if affiliation["name"] in results.keys():
-                    results[affiliation["name"]]+=1
-                else:
-                    results[affiliation["name"]]=1
+    def products_by_affiliation(self,data):
         result_list=[]
-        for idx,value in results.items():
+        for idx,value in data.items():
             result_list.append({"type":idx,"value":value})
         return result_list
 

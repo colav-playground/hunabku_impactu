@@ -419,7 +419,7 @@ class AffiliationApp(HunabkuPluginBase):
     
     def get_citations_by_affiliations(self,idx,typ):
         affiliations=[]
-        affiliations_names=[]
+        aff_ids=[]
         if not typ in ["group","department","faculty"]:
             return None
         for aff in self.colav_db["affiliations"].find({"relations.id":ObjectId(idx),"types.type":typ}):
@@ -431,12 +431,64 @@ class AffiliationApp(HunabkuPluginBase):
                 if n["lang"]=="en":
                     name=n["name"]
             affiliations.append((aff["_id"],name))
+
         data={}
-        for aff,name in affiliations:
+        for aff_id,name in affiliations:
             data[name]=[]
-            for work in self.colav_db["works"].find({"authors.affiliations.id":aff,"citations_count":{"$ne":[]}},{"citations_count":1}):
-                data[name].append(work)
+            for author in self.colav_db["person"].find({"affiliations.id":aff_id}):
+                aff_start_date=None
+                aff_end_date=None
+                for aff in author["affiliations"]:
+                    if aff["id"]==aff_id:
+                        aff_start_date=aff["start_date"] if aff["start_date"]!=-1 else 9999999999
+                        aff_end_date=aff["end_date"] if aff["end_date"]!=-1 else 9999999999
+                        break
+                query_dict={
+                    "authors.id":author["_id"],
+                    "citations_count":{"$ne":[]},
+                    "$and":[{"date_published":{"$lte":aff_end_date}},{"date_published":{"$gte":aff_start_date}}]
+                }
+                
+                for work in self.colav_db["works"].find(query_dict,{"citations_count":1}):
+                    data[name].append(work)
+
         return {"plot":self.pies.citations_by_affiliation(data)}
+
+    def get_products_by_affiliations(self,idx,typ):
+        affiliations=[]
+        aff_ids=[]
+        if not typ in ["group","department","faculty"]:
+            return None
+        for aff in self.colav_db["affiliations"].find({"relations.id":ObjectId(idx),"types.type":typ}):
+            name=aff["names"][0]["name"]
+            for n in aff["names"]:
+                if n["lang"]=="es":
+                    name=n["name"]
+                    break
+                if n["lang"]=="en":
+                    name=n["name"]
+            affiliations.append((aff["_id"],name))
+
+        data={}
+        for aff_id,name in affiliations:
+            data[name]=0
+            for author in self.colav_db["person"].find({"affiliations.id":aff_id}):
+                aff_start_date=None
+                aff_end_date=None
+                for aff in author["affiliations"]:
+                    if aff["id"]==aff_id:
+                        aff_start_date=aff["start_date"] if aff["start_date"]!=-1 else 9999999999
+                        aff_end_date=aff["end_date"] if aff["end_date"]!=-1 else 9999999999
+                        break
+                query_dict={
+                    "authors.id":author["_id"],
+                    "$and":[{"date_published":{"$lte":aff_end_date}},{"date_published":{"$gte":aff_start_date}}]
+                }
+                
+                data[name]+=self.colav_db["works"].count_documents(query_dict)
+                    
+
+        return {"plot":self.pies.products_by_affiliation(data)}
 
 
     def get_products_by_publisher(self,idx):
@@ -660,6 +712,9 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="citations_affiliations":
                         typ = self.request.args.get('type')
                         result = self.get_citations_by_affiliations(idx,typ)
+                    elif plot=="products_affiliations":
+                        typ = self.request.args.get('type')
+                        result = self.get_products_by_affiliations(idx,typ)
                     elif plot=="products_publisher":
                         result=self.get_products_by_publisher(idx)
                     elif plot=="products_subject":
