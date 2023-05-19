@@ -114,28 +114,10 @@ class pies():
 
     # H index for each faculty department or group
     def hindex_by_affiliation(self,data):
-        results={}
-        for work in data:
-            citations=0
-            for count in work["citations_count"]:
-                if count["source"]=="scholar":
-                    citations=count["count"]
-                    break
-                elif count["source"]=="openalex":
-                    citations=count["count"]
-                    break
-            if citations==0:
-                continue
-            if work["affiliations"]==[]:
-                continue
-            for affiliation in work["affiliations"]:
-                if affiliation["name"] in results.keys():
-                    results[affiliation["name"]].append(citations)
-                else:
-                    results[affiliation["name"]]=[citations]
-        for affiliation in results.keys():
-            results[affiliation]=hindex(results[affiliation])
-        return results
+        result_list=[]
+        for idx,value in data.items():
+            result_list.append({"type":idx,"value":hindex(value)})
+        return result_list
 
     # Ammount of papers per publisher
     def products_by_publisher(self,data):

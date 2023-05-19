@@ -487,9 +487,91 @@ class AffiliationApp(HunabkuPluginBase):
                 
                 data[name]+=self.colav_db["works"].count_documents(query_dict)
                     
-
         return {"plot":self.pies.products_by_affiliation(data)}
 
+    def get_apc_by_affiliations(self,idx,typ):
+        affiliations=[]
+        aff_ids=[]
+        if not typ in ["group","department","faculty"]:
+            return None
+        for aff in self.colav_db["affiliations"].find({"relations.id":ObjectId(idx),"types.type":typ}):
+            name=aff["names"][0]["name"]
+            for n in aff["names"]:
+                if n["lang"]=="es":
+                    name=n["name"]
+                    break
+                if n["lang"]=="en":
+                    name=n["name"]
+            affiliations.append((aff["_id"],name))
+
+        data={}
+        for aff_id,name in affiliations:
+            data[name]=[]
+            for author in self.colav_db["person"].find({"affiliations.id":aff_id}):
+                aff_start_date=None
+                aff_end_date=None
+                for aff in author["affiliations"]:
+                    if aff["id"]==aff_id:
+                        aff_start_date=aff["start_date"] if aff["start_date"]!=-1 else 9999999999
+                        aff_end_date=aff["end_date"] if aff["end_date"]!=-1 else 9999999999
+                        break
+                query_dict={
+                    "authors.id":author["_id"],
+                    "apc":{"$ne":[]},
+                    "$and":[{"date_published":{"$lte":aff_end_date}},{"date_published":{"$gte":aff_start_date}}]
+                }
+                
+                for work in self.colav_db["works"].find(query_dict,{"apc":1}):
+                    data[name].append(work)
+
+        return {"plot":self.pies.apc_by_affiliation(data)}
+
+    def get_h_by_affiliations(self,idx,typ):
+        affiliations=[]
+        aff_ids=[]
+        if not typ in ["group","department","faculty"]:
+            return None
+        for aff in self.colav_db["affiliations"].find({"relations.id":ObjectId(idx),"types.type":typ}):
+            name=aff["names"][0]["name"]
+            for n in aff["names"]:
+                if n["lang"]=="es":
+                    name=n["name"]
+                    break
+                if n["lang"]=="en":
+                    name=n["name"]
+            affiliations.append((aff["_id"],name))
+        
+        data={}
+        for aff_id,name in affiliations:
+            data[name]=[]
+            for author in self.colav_db["person"].find({"affiliations.id":aff_id}):
+                aff_start_date=None
+                aff_end_date=None
+                for aff in author["affiliations"]:
+                    if aff["id"]==aff_id:
+                        aff_start_date=aff["start_date"] if aff["start_date"]!=-1 else 9999999999
+                        aff_end_date=aff["end_date"] if aff["end_date"]!=-1 else 9999999999
+                        break
+                query_dict={
+                    "authors.id":author["_id"],
+                    "citation_count":{"$ne":[]},
+                    "$and":[{"date_published":{"$lte":aff_end_date}},{"date_published":{"$gte":aff_start_date}}]
+                }
+                
+                for work in self.colav_db["works"].find(query_dict,{"citations_count":1}):
+                    citations=0
+                    for count in work["citations_count"]:
+                        if count["source"]=="scholar":
+                            citations=count["count"]
+                            break
+                        elif count["source"]=="openalex":
+                            citations=count["count"]
+                            break
+                    if citations==0:
+                        continue
+                    data[name].append(citations)
+                    
+        return {"plot":self.pies.hindex_by_affiliation(data)}
 
     def get_products_by_publisher(self,idx):
         data=[]
@@ -715,6 +797,12 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="products_affiliations":
                         typ = self.request.args.get('type')
                         result = self.get_products_by_affiliations(idx,typ)
+                    elif plot=="apc_affiliations":
+                        typ = self.request.args.get('type')
+                        result = self.get_apc_by_affiliations(idx,typ)
+                    elif plot=="h_affiliations":
+                        typ = self.request.args.get('type')
+                        result = self.get_h_by_affiliations(idx,typ)
                     elif plot=="products_publisher":
                         result=self.get_products_by_publisher(idx)
                     elif plot=="products_subject":
