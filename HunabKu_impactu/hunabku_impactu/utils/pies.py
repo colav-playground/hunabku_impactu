@@ -97,18 +97,30 @@ class pies():
         return result_list
 
     #APC cost for each faculty department or group
-    def apc_by_affiliation(self,data):
-        results={}
-        for work in data:
-            if work["affiliations"]==[]:
-                continue
-            for affiliation in work["affiliations"]:
-                if affiliation["name"] in results.keys():
-                    results[affiliation["name"]]+=work["apc"]
+    def apc_by_affiliation(self,data,base_year):
+        c = CurrencyConverter()
+        now=datetime.date.today()
+        result={}
+        for name, costs in data.items():
+            for apc in costs:
+                value=0
+                if apc["currency"]=="USD":
+                    raw_value=apc["charges"]
+                    value=inflate(raw_value,apc["year_published"],to=base_year)
                 else:
-                    results[affiliation["name"]]=work["apc"]
+                    try:
+                        raw_value=c.convert(apc["xcharges"], apc["currency"], 'USD')
+                        value=inflate(raw_value,apc["year_published"],to=base_year)
+                    except Exception as e:
+                        #print("Could not convert currency with error: ",e)
+                        value=0
+                if value:
+                    if name not in result.keys():
+                        result[name]=value
+                    else:
+                        result[name]+=value
         result_list=[]
-        for idx,value in results.items():
+        for idx,value in result.items():
             result_list.append({"type":idx,"value":value})
         return result_list
 

@@ -517,14 +517,20 @@ class AffiliationApp(HunabkuPluginBase):
                         break
                 query_dict={
                     "authors.id":author["_id"],
-                    "apc":{"$ne":[]},
+                    "source":{"$ne":[]},
                     "$and":[{"date_published":{"$lte":aff_end_date}},{"date_published":{"$gte":aff_start_date}}]
                 }
                 
-                for work in self.colav_db["works"].find(query_dict,{"apc":1}):
-                    data[name].append(work)
+                for work in self.colav_db["works"].find(query_dict,{"source":1,"year_published":1}):
+                    if not "id" in work["source"].keys():
+                        continue
+                    source_db=self.colav_db["sources"].find_one({"_id":work["source"]["id"]})
+                    if source_db:
+                        if source_db["apc"]:
+                            source_db["apc"]["year_published"]=work["year_published"]
+                            data[name].append(source_db["apc"])
 
-        return {"plot":self.pies.apc_by_affiliation(data)}
+        return {"plot":self.pies.apc_by_affiliation(data,2022)}
 
     def get_h_by_affiliations(self,idx,typ):
         affiliations=[]
