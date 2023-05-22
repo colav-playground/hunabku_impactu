@@ -781,6 +781,12 @@ class AffiliationApp(HunabkuPluginBase):
                 if plot:
                     if plot=="year_type":
                         result=self.get_products_by_year_by_type(idx)
+                    if plot=="faculty_type":
+                        result=self.get_products_by_year_by_type(idx,typ="faculty")
+                    if plot=="department_type":
+                        result=self.get_products_by_year_by_type(idx,typ="department")
+                    if plot=="group_type":
+                        result=self.get_products_by_year_by_type(idx,typ="group")
                     elif plot=="year_citations":
                         result=self.get_citations_by_year(idx)
                     elif plot=="year_apc":
@@ -797,18 +803,30 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_products_by_year_by_group_category(idx)
                     elif plot=="title_words":
                         result=self.get_title_words(idx)
-                    elif plot=="citations_affiliations":
-                        typ = self.request.args.get('type')
-                        result = self.get_citations_by_affiliations(idx,typ)
-                    elif plot=="products_affiliations":
-                        typ = self.request.args.get('type')
-                        result = self.get_products_by_affiliations(idx,typ)
-                    elif plot=="apc_affiliations":
-                        typ = self.request.args.get('type')
-                        result = self.get_apc_by_affiliations(idx,typ)
-                    elif plot=="h_affiliations":
-                        typ = self.request.args.get('type')
-                        result = self.get_h_by_affiliations(idx,typ)
+                    elif plot=="citations_faculty":
+                        result = self.get_citations_by_affiliations(idx,typ="faculty")
+                    elif plot=="citations_department":
+                        result = self.get_citations_by_affiliations(idx,typ="department")
+                    elif plot=="citations_group":
+                        result = self.get_citations_by_affiliations(idx,typ="group")
+                    elif plot=="products_faculty":
+                        result = self.get_products_by_affiliations(idx,typ="faculty")
+                    elif plot=="products_department":
+                        result = self.get_products_by_affiliations(idx,typ="department")
+                    elif plot=="products_group":
+                        result = self.get_products_by_affiliations(idx,typ="group")
+                    elif plot=="apc_faculty":
+                        result = self.get_apc_by_affiliations(idx,typ="faculty")
+                    elif plot=="apc_department":
+                        result = self.get_apc_by_affiliations(idx,typ="department")
+                    elif plot=="apc_group":
+                        result = self.get_apc_by_affiliations(idx,typ="group")
+                    elif plot=="h_faculty":
+                        result = self.get_h_by_affiliations(idx,typ="faculty")
+                    elif plot=="h_department":
+                        result = self.get_h_by_affiliations(idx,typ="department")
+                    elif plot=="h_group":
+                        result = self.get_h_by_affiliations(idx,typ="group")
                     elif plot=="products_publisher":
                         result=self.get_products_by_publisher(idx)
                     elif plot=="products_subject":
