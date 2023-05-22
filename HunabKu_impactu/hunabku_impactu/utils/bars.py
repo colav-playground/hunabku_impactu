@@ -36,16 +36,58 @@ class bars():
                     result[year]={}
                 for typ in work["types"]:
                     if typ["source"]=="scienti":
-                        if typ["type"] not in result[year].keys():
-                            result[year][typ["type"]]=1
-                        else:
-                            result[year][typ["type"]]+=1
+                        if typ["level"]==2:
+                            if typ["type"] not in result[year].keys():
+                                result[year][typ["type"]]=1
+                            else:
+                                result[year][typ["type"]]+=1
         #turn the dict into a list of dicts with the format {x:year, y:count, type:typ} sorted by year in ascending order
         result_list=[]
         for year in result.keys():
             for typ in result[year].keys():
                 result_list.append({"x":year,"y":result[year][typ],"type":typ})
         result_list=sorted(result_list,key=lambda x: x["x"])
+
+        return result_list
+
+    def products_by_affiliation_by_type(self,data):
+        '''
+        Returns a list of dicts of the form {x:affiliation_name, y:count, type:type} sorted by year in ascending order, 
+        where affiliation_name is the name of the affiliation that published, count is the number of publications of a given type in that year, 
+        and type is the type of publication. 
+
+        Parameters
+        -----------
+        data: list of works
+
+        Returns
+        --------
+        list of dicts with the format {x:affiliation_name, y:count, type:typ}
+        '''
+        if not isinstance(data,dict):
+            print(type(data))
+            return None
+        if len(data)==0:
+            print(len(data))
+            return None
+        result={}
+        for name,works in data.items():
+            for work in works:
+                if name not in result.keys():
+                    result[name]={}
+                for typ in work["types"]:
+                    if typ["source"]=="scienti":
+                        if typ["level"]==2:
+                            if typ["type"] not in result[name].keys():
+                                result[name][typ["type"]]=1
+                            else:
+                                result[name][typ["type"]]+=1
+        #turn the dict into a list of dicts with the format {x:year, y:count, type:typ} sorted by year in ascending order
+        result_list=[]
+        for name in result.keys():
+            for typ in result[name].keys():
+                result_list.append({"x":name,"y":result[name][typ],"type":typ})
+        result_list=sorted(result_list,key=lambda x: x["y"],reverse=True)
 
         return result_list
 
