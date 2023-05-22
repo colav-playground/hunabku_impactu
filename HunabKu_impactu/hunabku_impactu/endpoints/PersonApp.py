@@ -9,7 +9,7 @@ from hunabku_impactu.utils.maps import maps
 from math import nan
 
 
-class AffiliationApp(HunabkuPluginBase):
+class PersonApp(HunabkuPluginBase):
     config=Config()
     config += Param(db_uri="mongodb://localhost:27017/",
                     doc="MongoDB string connection")
@@ -41,58 +41,44 @@ class AffiliationApp(HunabkuPluginBase):
                 print("Could not convert end year to int")
                 return None
 
-        affiliation = self.colav_db['affiliations'].find_one({"_id":ObjectId(idx)})
-        if affiliation:
-            name=""
-            for n in affiliation["names"]:
-                if n["lang"]=="es":
-                    name=n["name"]
+        person = self.colav_db['person'].find_one({"_id":ObjectId(idx)})
+        if person:
+            aff_id=None
+            affiliation=None
+            for aff in person["affiliations"]:
+                if aff_id:
                     break
-                elif n["lang"]=="en":
-                    name=n["name"]
+                for typ in aff["types"]:
+                    if not typ["type"] in ["group","faculty","department"] :
+                        aff_id=aff["id"]
+                        break
+            if aff_id:
+                affiliation=self.colav_db["affiliations"].find_one({"_id":ObjectId(aff_id)})
             logo=""
             for ext in affiliation["external_urls"]:
                 if ext["source"]=="logo":
                     logo=ext["url"]
 
-            entry={"id":affiliation["_id"],
-                "name":name,
-                "citations":affiliation["citations_count"] if "citations_count" in affiliation.keys() else None,
-                "external_urls":[ext for ext in affiliation["external_urls"] if ext["source"]!="logo"],
+            entry={"id":person["_id"],
+                "name":person["full_name"],
+                "citations":person["citations_count"] if "citations_count" in person.keys() else None,
+                "external_urls":[ext for ext in person["external_urls"] if ext["source"]!="logo"] if "external_urls" in person.keys() else None,
+                "external_urls":person["external_ids"] if "external_ids" in person.keys() else None,
                 "logo":logo
             }
             index_list=[]
         
             filters={"years":{}}
-            for reg in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1}}).sort([("year_published",ASCENDING)]).limit(1):
+            for reg in self.colav_db["works"].find({"authors.id":ObjectId(idx),"year_published":{"$exists":1}}).sort([("year_published",ASCENDING)]).limit(1):
                 filters["years"]["start_year"]=reg["year_published"]
-            for reg in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1}}).sort([("year_published",DESCENDING)]).limit(1):
+            for reg in self.colav_db["works"].find({"authors.id":ObjectId(idx),"year_published":{"$exists":1}}).sort([("year_published",DESCENDING)]).limit(1):
                 filters["years"]["end_year"]=reg["year_published"]
             filters["types"]=[]
             
             return {"data": entry, "filters": filters }
         else:
             return None
-
-    def get_affiliations(self,idx):
-        data={"departments":[],"faculties":[],"groups":[]}
-
-        for aff in self.colav_db['affiliations'].find({"relations.id":ObjectId(idx)},{"types":1,"names":1}):
-            if aff["types"]:
-                for typ in aff["types"]:
-                    if typ["type"]=="group":
-                        data["groups"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
-                        break
-                    elif typ["type"]=="department":
-                        data["departments"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
-                        break
-                    elif typ["type"]=="faculty":
-                        data["faculties"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
-                        break
-
-        return data
-        
-        
+    
     def get_research_products(self,idx,typ=None,start_year=None,end_year=None,page=None,max_results=None,sort=None):
         papers=[]
         total=0
@@ -115,7 +101,7 @@ class AffiliationApp(HunabkuPluginBase):
         search_dict={}
 
         if idx:
-            search_dict={"authors.affiliations.id":ObjectId(idx)}     
+            search_dict={"authors.id":ObjectId(idx)}     
         if start_year or end_year:
             search_dict["year_published"]={}
         if start_year:
@@ -185,7 +171,12 @@ class AffiliationApp(HunabkuPluginBase):
                         break
 
                 if "source" in paper.keys():
-                    entry["source"]={"name":paper["source"]["names"][0]["name"],"id":paper["source"]["id"]}
+                    try:
+                        entry["source"]={"name":paper["source"]["names"][0]["name"],"id":paper["source"]["id"]}
+                    except Exception as e:
+                        #print(e)
+                        entry["source"]={"name":"","id":""}
+                        #print(paper["source"])
                 
                 authors=[]
                 for author in paper["authors"]:
@@ -286,21 +277,21 @@ class AffiliationApp(HunabkuPluginBase):
 
     def get_products_by_year_by_type(self,idx):
         data = []
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1}},{"year_published":1,"types":1}):
+        for work in self.colav_db["works"].find({"authors.id":ObjectId(idx),"year_published":{"$exists":1}},{"year_published":1,"types":1}):
             data.append(work)
         result=self.bars.products_by_year_by_type(data)
         return {"plot":result}
 
     def get_citations_by_year(self,idx):
         data = []
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"citations_by_year":{"$ne":[]},"year_published":{"$exists":1}},{"year_published":1,"citations_by_year":1}):
+        for work in self.colav_db["works"].find({"authors.id":ObjectId(idx),"citations_by_year":{"$ne":[]},"year_published":{"$exists":1}},{"year_published":1,"citations_by_year":1}):
             data.append(work)
         result=self.bars.citations_by_year(data)
         return {"plot":result}
         
     def get_apc_by_year(self,idx):
         data = []
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1},"source.id":{"$exists":1}},{"year_published":1,"source":1}):
+        for work in self.colav_db["works"].find({"authors.id":ObjectId(idx),"year_published":{"$exists":1},"source.id":{"$exists":1}},{"year_published":1,"source":1}):
             if not "source" in work.keys():
                 continue
             if not "id" in work["source"].keys():
@@ -316,7 +307,7 @@ class AffiliationApp(HunabkuPluginBase):
         data=[]
         for work in self.colav_db["works"].find(
             {
-                "authors.affiliations.id":ObjectId(idx),
+                "authors.id":ObjectId(idx),
                 "year_published":{"$exists":1},
                 "bibliographic_info.is_open_acess":{"$exists":1}
             },
@@ -333,7 +324,7 @@ class AffiliationApp(HunabkuPluginBase):
         data=[]
         for work in self.colav_db["works"].find(
             {
-                "authors.affiliations.id":ObjectId(idx),
+                "authors.id":ObjectId(idx),
                 "year_published":{"$exists":1},
                 "source.id":{"$exists":1}
             },
@@ -355,7 +346,7 @@ class AffiliationApp(HunabkuPluginBase):
 
     def get_h_by_year(self,idx):
         data = []
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"citations_by_year":{"$ne":[]}},{"citations_by_year":1}):
+        for work in self.colav_db["works"].find({"authors.id":ObjectId(idx),"citations_by_year":{"$ne":[]}},{"citations_by_year":1}):
             data.append(work)
         result=self.bars.citations_by_year(data)
         return {"plot":result}
@@ -363,7 +354,7 @@ class AffiliationApp(HunabkuPluginBase):
     def get_products_by_year_by_researcher_category(self,idx):
         data=[]
         pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$match":{"authors.id":ObjectId(idx)}},
             {"$project":{"year_published":1,"authors":1}},
             {"$unwind":"$authors"},
             {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"researcher"}},
@@ -396,7 +387,7 @@ class AffiliationApp(HunabkuPluginBase):
                 break
 
         if db_type=="group":
-            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1}},{"year_published":1}):
+            for work in self.colav_db["works"].find({"authors.id":ObjectId(idx),"year_published":{"$exists":1}},{"year_published":1}):
                 work["ranking"]=info_db["ranking"]
                 data.append(work)
         else:
@@ -405,7 +396,7 @@ class AffiliationApp(HunabkuPluginBase):
                     if "type" in typ.keys():
                         if typ["type"]=="group":
                             info_group=self.colav_db["affiliations"].find_one({"_id":ObjectId(group["id"])},{"ranking":1})
-                            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(group["id"]),"year_published":{"$exists":1}},{"year_published":1}):
+                            for work in self.colav_db["works"].find({"authors.id":ObjectId(group["id"]),"year_published":{"$exists":1}},{"year_published":1}):
                                 work["ranking"]=info_group["ranking"]
                                 data.append(work)
         print(data)
@@ -413,7 +404,7 @@ class AffiliationApp(HunabkuPluginBase):
 
     def get_title_words(self,idx):
         data=[]
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"titles":{"$exists":1}},{"titles":1}):
+        for work in self.colav_db["works"].find({"authors.id":ObjectId(idx),"titles":{"$exists":1}},{"titles":1}):
             data.append(work)
         return {"plot":self.pies.most_used_words(data)}
     
@@ -583,7 +574,7 @@ class AffiliationApp(HunabkuPluginBase):
         data=[]
         for work in self.colav_db["works"].find(
             {
-                "authors.affiliations.id":ObjectId(idx),
+                "authors.id":ObjectId(idx),
                 "source.id":{"$exists":1}
             },{"source.id":1}
         ):
@@ -605,7 +596,7 @@ class AffiliationApp(HunabkuPluginBase):
         data=[]
         for work in self.colav_db["works"].find(
             {
-                "authors.affiliations.id":ObjectId(idx),
+                "authors.id":ObjectId(idx),
                 "subjects":{"$exists":1}
             },{"subjects":1}
         ):
@@ -633,7 +624,7 @@ class AffiliationApp(HunabkuPluginBase):
         data=[]
         for work in self.colav_db["works"].find(
             {
-                "authors.affiliations.id":ObjectId(idx)
+                "authors.id":ObjectId(idx)
             },{"updated":1}
         ):
             data.append(work["updated"])
@@ -645,7 +636,7 @@ class AffiliationApp(HunabkuPluginBase):
         data=[]
         for work in self.colav_db["works"].find(
             {
-                "authors.affiliations.id":ObjectId(idx),
+                "authors.id":ObjectId(idx),
                 "bibliographic_info.open_access_status":{"$exists":1,"$ne":None}
             },{"bibliographic_info.open_access_status":1}
         ):
@@ -657,7 +648,7 @@ class AffiliationApp(HunabkuPluginBase):
     def get_products_by_author_sex(self,idx):
         data=[]
         pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$match":{"authors.id":ObjectId(idx)}},
             {"$project":{"authors":1}},
             {"$unwind":"$authors"},
             {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
@@ -672,10 +663,10 @@ class AffiliationApp(HunabkuPluginBase):
     def get_products_by_author_age(self,idx):
         data=[]
         pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$match":{"authors.id":ObjectId(idx)}},
             {"$project":{"authors":1,"date_published":1,"year_published":1}},
             {"$unwind":"$authors"},
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$match":{"authors.id":ObjectId(idx)}},
             {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
             {"$project":{"author.birthdate":1,"date_published":1,"year_published":1}},
             {"$match":{"author.birthdate":{"$ne":-1,"$exists":1}}}
@@ -687,7 +678,7 @@ class AffiliationApp(HunabkuPluginBase):
 
     def get_products_by_scienti_rank(self,idx):
         data=[]
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"ranking":{"$ne":[]}},{"ranking":1}):
+        for work in self.colav_db["works"].find({"authors.id":ObjectId(idx),"ranking":{"$ne":[]}},{"ranking":1}):
             data.append(work)
         result=self.pies.products_by_scienti_rank(data)
         return {"plot":result}
@@ -695,7 +686,7 @@ class AffiliationApp(HunabkuPluginBase):
     def get_products_by_scimago_rank(self,idx):
         data=[]
         pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$match":{"authors.id":ObjectId(idx)}},
             {"$project":{"source":1,"date_published":1}},
             {"$lookup":{"from":"sources","localField":"source.id","foreignField":"_id","as":"source"}},
             {"$unwind":"$source"},
@@ -710,7 +701,7 @@ class AffiliationApp(HunabkuPluginBase):
         data=[]
         institution=self.colav_db["affiliations"].find_one({"_id":ObjectId(idx)},{"names":1})
         pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+            {"$match":{"authors.id":ObjectId(idx)}},
             {"$project":{"source":1}},
             {"$lookup":{"from":"sources","localField":"source.id","foreignField":"_id","as":"source"}},
             {"$unwind":"$source"},
@@ -726,7 +717,7 @@ class AffiliationApp(HunabkuPluginBase):
         data=[]
         pipeline=[
             {"$unwind":"$authors"},
-            {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
+            {"$group":{"_id":"$authors.id","count":{"$sum":1}}},
             {"$unwind":"$_id"},
             {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
             {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.country":1}},
@@ -742,7 +733,7 @@ class AffiliationApp(HunabkuPluginBase):
         data=[]
         pipeline=[
             {"$unwind":"$authors"},
-            {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
+            {"$group":{"_id":"$authors.id","count":{"$sum":1}}},
             {"$unwind":"$_id"},
             {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
             {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.city":1}},
@@ -755,15 +746,15 @@ class AffiliationApp(HunabkuPluginBase):
         return {"plot":result}
 
     def get_coauthorships_network(self, idx):
-        data=self.impactu_db["affiliations"].find_one({"_id":ObjectId(idx)},{"coauthorship_network":1})["coauthorship_network"]
+        data=self.impactu_db["person"].find_one({"_id":ObjectId(idx)},{"coauthorship_network":1})["coauthorship_network"]
         if data:
             return {"plot":data}
         else:
             return None
     
 
-    @endpoint('/app/affiliation', methods=['GET'])
-    def app_affiliation(self):
+    @endpoint('/app/person', methods=['GET'])
+    def app_person(self):
         section = self.request.args.get('section')
         tab = self.request.args.get('tab')
         data = self.request.args.get('data')
@@ -773,8 +764,6 @@ class AffiliationApp(HunabkuPluginBase):
 
         if section=="info":
             result = self.get_info(idx)
-        elif section=="affiliations":
-            result = self.get_affiliations(idx)
         elif section=="research":
             if tab=="products":
                 plot=self.request.args.get("plot")

@@ -7,7 +7,7 @@ class bars():
     def __init__(self):
         pass
     
-    #production of affiliations by minciencias produyct type (within the hierarchy of the viewed entity)
+    #production of affiliations by minciencias product type (within the hierarchy of the viewed entity)
     def products_by_year_by_type(self,data):
         '''
         Returns a list of dicts of the form {x:year, y:count, type:type} sorted by year in ascending order, 
@@ -22,7 +22,6 @@ class bars():
         --------
         list of dicts with the format {x:year, y:count, type:typ}
         '''
-        #anual production by minciencias product type (must have count, proportion, and total)
         if not isinstance(data,list):
             print(type(data))
             return None
