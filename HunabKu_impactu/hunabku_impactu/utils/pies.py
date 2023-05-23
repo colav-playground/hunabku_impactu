@@ -60,7 +60,7 @@ class pies():
         topN=sorted(results.items(), key=lambda x: x[1], reverse=True)[:size]
         results=[]
         for top in topN:
-            results.append({"type":top[0],"value":top[1]})
+            results.append({"name":top[0],"value":top[1]})
         return results     
 
     #Accumulated citations for each faculty department or group
@@ -85,7 +85,7 @@ class pies():
         
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list      
 
 
@@ -93,7 +93,7 @@ class pies():
     def products_by_affiliation(self,data):
         result_list=[]
         for idx,value in data.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
 
     #APC cost for each faculty department or group
@@ -121,14 +121,14 @@ class pies():
                         result[name]+=value
         result_list=[]
         for idx,value in result.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
 
     # H index for each faculty department or group
     def hindex_by_affiliation(self,data):
         result_list=[]
         for idx,value in data.items():
-            result_list.append({"type":idx,"value":hindex(value)})
+            result_list.append({"name":idx,"value":hindex(value)})
         return result_list
 
     # Ammount of papers per publisher
@@ -142,7 +142,7 @@ class pies():
                     results[work["publisher"]["name"]]=1
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
 
     # ammount of papers per openalex subject
@@ -155,7 +155,7 @@ class pies():
                 results[subject["subject"]["name"]]=1
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
 
     # Ammount of papers per database
@@ -169,7 +169,7 @@ class pies():
                     results[source["source"]]=1
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
 
     # Ammount of papers per open access status
@@ -182,7 +182,7 @@ class pies():
                 results[status]=1
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
 
     # Ammount of papers per author sex
@@ -195,7 +195,7 @@ class pies():
                 results[work["author"][0]["sex"]]=1
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
 
     # Ammount of papers per author age intervals 14-26 años, 27-59 años 60 años en adelante
@@ -211,7 +211,7 @@ class pies():
                     results[name]+=1
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
             
 
@@ -231,7 +231,7 @@ class pies():
                     results[rank]=1
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
 
     # Ammount of papers per journal on scimago
@@ -248,7 +248,7 @@ class pies():
                         break
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list
 
     # Ammmount of papers published on a journal of the same institution
@@ -267,5 +267,5 @@ class pies():
                     results["different"]+=1
         result_list=[]
         for idx,value in results.items():
-            result_list.append({"type":idx,"value":value})
+            result_list.append({"name":idx,"value":value})
         return result_list

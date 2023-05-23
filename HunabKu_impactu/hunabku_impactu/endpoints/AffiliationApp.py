@@ -123,7 +123,8 @@ class AffiliationApp(HunabkuPluginBase):
         if end_year:
             search_dict["year_published"]["$lte"]=end_year
         if typ:
-            search_dict["types.type"]=typ
+            if typ!="institution":
+                search_dict["types.type"]=typ
         
         cursor=self.colav_db["works"].find(search_dict)
         total=self.colav_db["works"].count_documents(search_dict)
@@ -185,7 +186,10 @@ class AffiliationApp(HunabkuPluginBase):
                         break
 
                 if "source" in paper.keys():
-                    entry["source"]={"name":paper["source"]["names"][0]["name"],"id":paper["source"]["id"]}
+                    if "name" in paper["source"].keys():
+                        entry["source"]={"name":paper["source"]["name"],"id":paper["source"]["id"]}
+                    elif "names" in paper["source"].keys():
+                        entry["source"]={"name":paper["source"]["names"][0]["name"],"id":paper["source"]["id"]}
                 
                 authors=[]
                 for author in paper["authors"]:
@@ -195,6 +199,8 @@ class AffiliationApp(HunabkuPluginBase):
                     author_db=None
                     if "id" in author.keys():
                         author_db=self.colav_db["person"].find_one({"_id":author["id"]})
+                    else:
+                        continue
                     if author_db:
                         au_entry={
                             "id":author_db["_id"],
@@ -524,7 +530,7 @@ class AffiliationApp(HunabkuPluginBase):
                 
                 data[name]+=self.colav_db["works"].count_documents(query_dict)
                     
-        return {"plot":self.bars.products_by_affiliation_by_type(data)}
+        return {"plot":self.pies.products_by_affiliation(data)}
 
     def get_apc_by_affiliations(self,idx,typ):
         affiliations=[]

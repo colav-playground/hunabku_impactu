@@ -60,7 +60,10 @@ class maps():
         for i,feat in enumerate(self.colombiamap["features"]):
             dep_name=feat["properties"]["NOMBRE_DPT"].capitalize() if "bogota" not in feat["properties"]["NOMBRE_DPT"].lower() else "Bogotá D.C."
             if dep_name in departments.keys():
-               self.colombiamap["features"][i]["properties"]["count"]=departments[dep_name]["count"]
-               self.colombiamap["features"][i]["properties"]["log_count"]=departments[dep_name]["log_count"]
+                self.colombiamap["features"][i]["properties"]["count"]=departments[dep_name]["count"]
+                self.colombiamap["features"][i]["properties"]["log_count"]=departments[dep_name]["log_count"]
+            else:
+                self.colombiamap["features"][i]["properties"]["count"]=0
+                self.colombiamap["features"][i]["properties"]["log_count"]=0
 
         return self.colombiamap

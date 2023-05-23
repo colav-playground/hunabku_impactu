@@ -31,7 +31,7 @@ class WorkApp(HunabkuPluginBase):
                 "authors":[],
                 "policies":{},
                 "open_access_status": "",
-                "citations_count":document["citations_count"] if "citations_count" in document.keys() else "",
+                "citations_count":0,
                 "external_ids":[],
                 "external_urls":document["external_urls"]
             }
@@ -45,7 +45,13 @@ class WorkApp(HunabkuPluginBase):
                 if "open_access_status" in document["bibliographic_info"].keys():
                     entry["open_access_status"]=document["bibliographic_info"]["open_access_status"]
             index_list=[]
-
+            if "citations_count" in document.keys():
+                for cite in document["citations_count"]:
+                    if cite["source"]=="scholar":
+                        entry["citations_count"]=cite["count"]
+                        break
+                    elif cite["source"]=="openalex":
+                        entry["citations_count"]=cite["count"]
             if "source" in document.keys():
                 source=self.colav_db["sources"].find_one({"_id":document["source"]["id"]})
                 entry_source={
@@ -117,8 +123,6 @@ class WorkApp(HunabkuPluginBase):
     @endpoint('/app/work', methods=['GET'])
     def app_person(self):
         section = self.request.args.get('section')
-        tab = self.request.args.get('tab')
-        data = self.request.args.get('data')
         idx = self.request.args.get('id')
         
         result = None
