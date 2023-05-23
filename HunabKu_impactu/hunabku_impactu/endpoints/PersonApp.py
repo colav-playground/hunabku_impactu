@@ -351,23 +351,6 @@ class PersonApp(HunabkuPluginBase):
         result=self.bars.citations_by_year(data)
         return {"plot":result}
 
-    def get_products_by_year_by_researcher_category(self,idx):
-        data=[]
-        pipeline=[
-            {"$match":{"authors.id":ObjectId(idx)}},
-            {"$project":{"year_published":1,"authors":1}},
-            {"$unwind":"$authors"},
-            {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"researcher"}},
-            {"$project":{"year_published":1,"researcher.ranking":1}},
-            {"$match":{"researcher.ranking.source":"scienti"}}
-        ]
-        for work in self.colav_db["works"].aggregate(pipeline):
-            for researcher in work["researcher"]:
-                for rank in researcher["ranking"]:
-                    if rank["source"]=="scienti":
-                        data.append({"year_published":work["year_published"],"rank":rank["rank"]})
-        return {"plot":self.bars.products_by_year_by_researcher_category(data)}
-
     def get_products_by_year_by_group_category(self,idx):
         data=[]
         info_db=self.colav_db["affiliations"].find_one({"_id":ObjectId(idx)},{"types":1,"relations":1,"ranking":1})
@@ -645,21 +628,6 @@ class PersonApp(HunabkuPluginBase):
         result=self.pies.products_by_open_access_status(data)
         return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["type"]!="closed"])}
     
-    def get_products_by_author_sex(self,idx):
-        data=[]
-        pipeline=[
-            {"$match":{"authors.id":ObjectId(idx)}},
-            {"$project":{"authors":1}},
-            {"$unwind":"$authors"},
-            {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
-            {"$project":{"author.sex":1}},
-            {"$match":{"author.sex":{"$ne":"","$exists":1}}}
-        ]
-        for work in self.colav_db["works"].aggregate(pipeline):
-            data.append(work)
-        result=self.pies.products_by_sex(data)
-        return {"plot":result}
-
     def get_products_by_author_age(self,idx):
         data=[]
         pipeline=[
@@ -699,7 +667,18 @@ class PersonApp(HunabkuPluginBase):
 
     def get_publisher_same_institution(self,idx):
         data=[]
-        institution=self.colav_db["affiliations"].find_one({"_id":ObjectId(idx)},{"names":1})
+        inst_id=None
+        person=self.colav_db["person"].find_one({"_id":ObjectId(idx)},{"affiliations":1})
+        found=False
+        for aff in person["affiliations"]:
+            if found:
+                break
+            for typ in aff["types"]:
+                if not typ["type"] in["faculty","department","group"]:
+                    inst_id=aff["id"]
+                    found=True
+                    break
+        institution=self.colav_db["affiliations"].find_one({"_id":ObjectId(inst_id)},{"names":1})
         pipeline=[
             {"$match":{"authors.id":ObjectId(idx)}},
             {"$project":{"source":1}},
