@@ -186,10 +186,11 @@ class AffiliationApp(HunabkuPluginBase):
                         break
 
                 if "source" in paper.keys():
-                    if "name" in paper["source"].keys():
-                        entry["source"]={"name":paper["source"]["name"],"id":paper["source"]["id"]}
-                    elif "names" in paper["source"].keys():
-                        entry["source"]={"name":paper["source"]["names"][0]["name"],"id":paper["source"]["id"]}
+                    if "id" in paper["source"].keys():
+                        if "name" in paper["source"].keys():
+                            entry["source"]={"name":paper["source"]["name"],"id":paper["source"]["id"]}
+                        elif "names" in paper["source"].keys():
+                            entry["source"]={"name":paper["source"]["names"][0]["name"],"id":paper["source"]["id"]}
                 
                 authors=[]
                 for author in paper["authors"]:
@@ -198,6 +199,8 @@ class AffiliationApp(HunabkuPluginBase):
                         au_entry["affiliations"]=[]
                     author_db=None
                     if "id" in author.keys():
+                        if author["id"]=="":
+                            continue
                         author_db=self.colav_db["person"].find_one({"_id":author["id"]})
                     else:
                         continue
@@ -695,7 +698,7 @@ class AffiliationApp(HunabkuPluginBase):
             data.append(work["bibliographic_info"]["open_access_status"])
         
         result=self.pies.products_by_open_access_status(data)
-        return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["type"]!="closed"])}
+        return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["name"]!="closed"])}
     
     def get_products_by_author_sex(self,idx):
         data=[]
