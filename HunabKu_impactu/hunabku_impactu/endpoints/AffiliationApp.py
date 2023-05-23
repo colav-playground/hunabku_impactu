@@ -803,7 +803,13 @@ class AffiliationApp(HunabkuPluginBase):
     def get_coauthorships_network(self, idx):
         data=self.impactu_db["affiliations"].find_one({"_id":ObjectId(idx)},{"coauthorship_network":1})["coauthorship_network"]
         if data:
-            return {"plot":data}
+            nodes=sorted(data["nodes"],key=lambda x:x["degree"],reverse=True)[:50]
+            nodes_ids=[node["id"] for node in nodes]
+            edges=[]
+            for edge in data["edges"]:
+                if edge["source"] in nodes_ids and edge["target"] in nodes_ids:
+                    edges.append(edge)
+            return {"plot":{"nodes":nodes,"edges":edges}}
         else:
             return None
     
