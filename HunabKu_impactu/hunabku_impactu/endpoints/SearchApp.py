@@ -98,7 +98,8 @@ class SearchApp(HunabkuPluginBase):
         else:
             filter_cursor=self.colav_db['person'].find({"external_ids":{"$ne":[]}})
 
-        var_dict["score"]={"$meta":"textScore"}
+        if keywords:
+            var_dict["score"]={"$meta":"textScore"}
 
         cursor=self.colav_db['person'].find(search_dict,var_dict)
 
@@ -186,11 +187,12 @@ class SearchApp(HunabkuPluginBase):
                 search_dict={"types.type":aff_type}
         if keywords:
             search_dict["$text"]={"$search":keywords}
+            var_dict["score"]={"$meta":"textScore"}
 
-        var_dict["score"]={"$meta":"textScore"}
         cursor=self.colav_db['affiliations'].find(search_dict,var_dict)
         
-        cursor.sort([("score", { "$meta": "textScore" } )])
+        if keywords:
+            cursor.sort([("score", { "$meta": "textScore" } )])
 
         total=self.colav_db['affiliations'].count_documents(search_dict)
 

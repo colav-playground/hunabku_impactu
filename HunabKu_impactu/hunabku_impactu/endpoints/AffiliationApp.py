@@ -446,16 +446,28 @@ class AffiliationApp(HunabkuPluginBase):
                 work["ranking"]=info_db["ranking"]
                 data.append(work)
         else:
-            for group in info_db["relations"]:
-                for typ in group["types"]:
-                    if "type" in typ.keys():
-                        if typ["type"]=="group":
-                            info_group=self.colav_db["affiliations"].find_one({"_id":ObjectId(group["id"])},{"ranking":1})
-                            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(group["id"]),"year_published":{"$exists":1}},{"year_published":1}):
-                                work["ranking"]=info_group["ranking"]
-                                data.append(work)
-        print(data)
-        return{"plot":self.bars.products_by_year_by_group_category(data)}
+            groups=self.colav_db["affiliations"].find({"relations.id":ObjectId(idx),"types.type":"group"},{"_id":1,"ranking":1})
+            for group in groups:
+                authors=self.colav_db["person"].find({"affiliations.id":group["_id"]},{"affiliations":1})
+                for author in authors:
+                    aff_start_date=None
+                    aff_end_date=None
+                    for aff in author["affiliations"]:
+                        if aff["id"]==group["_id"]:
+                            aff_start_date=aff["start_date"] if aff["start_date"]!=-1 else 9999999999
+                            aff_end_date=aff["end_date"] if aff["end_date"]!=-1 else 9999999999
+                            break
+                    query_dict={
+                        "authors.id":author["_id"],
+                        "ranking":{"$ne":[]},
+                        "$and":[{"date_published":{"$lte":aff_end_date}},{"date_published":{"$gte":aff_start_date}}]
+                    }
+                    for work in self.colav_db["works"].find(query_dict,{"year_published":1,"date_published":1}):
+                        work["ranking"]=group["ranking"]
+                        data.append(work)
+        #print(data)
+        result=self.bars.products_by_year_by_group_category(data)
+        return{"plot":result}
 
     def get_title_words(self,idx):
         data=[]

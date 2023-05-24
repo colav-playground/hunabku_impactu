@@ -317,15 +317,20 @@ class bars():
         '''
         result={}
         for work in data:
-            if "year_published" in work.keys():
+            if "date_published" in work.keys() and "year_published" in work.keys():
                 year=work["year_published"]
                 year_timestamp=datetime.datetime.strptime(str(year),"%Y").timestamp()
+                date=work["date_published"]
                 rank_name=""
+                #print(year,year_timestamp, date)
                 for rank in work["ranking"]:
-                    if rank["from_date"]<year_timestamp and rank["to_date"]>year_timestamp:
-                        rank_name=rank["rank"]
-                        break
-                if rank_name:
+                    if rank["source"]=="scienti":
+                        #print(rank["rank"],rank["from_date"],rank["to_date"])
+                        if rank["from_date"]<year_timestamp and rank["to_date"]>year_timestamp:
+                            rank_name=rank["rank"]
+                            break
+                if rank_name!="":
+                    #print(rank["rank"],rank["from_date"],rank["to_date"])
                     if year not in result.keys():
                         result[year]={}
                     if rank_name not in result[year].keys():
