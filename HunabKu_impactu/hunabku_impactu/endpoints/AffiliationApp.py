@@ -159,7 +159,6 @@ class AffiliationApp(HunabkuPluginBase):
 
         cursor=cursor.skip(max_results*(page-1)).limit(max_results)
         if cursor:
-            paper_list=[]
             for paper in cursor:
                 entry={
                     "id":paper["_id"],

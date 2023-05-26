@@ -63,30 +63,100 @@ class WorkApp(HunabkuPluginBase):
                         entry_source["serials"][serial["source"]]=serial["id"]
                 entry["source"]=entry_source
 
+            authors=[]
             for author in document["authors"]:
-                author_entry={}
-                author_entry["name"]=author["full_name"]
-                author_entry["id"]=author["id"]
-                author_entry["affiliation"]={}
-                group_name = ""
-                group_id = ""
-                inst_name=""
-                inst_id=""
-                if "affiliations" in author.keys():
-                    if len(author["affiliations"])>0:
-                        for aff in author["affiliations"]:
-                            if "types" in aff.keys():
-                                for typ in aff["types"]:
-                                    if typ["type"]=="group":
-                                        group_name=aff["names"][0]["name"]
-                                        group_id=aff["id"]
-                                    else:   
-                                        inst_name=aff["names"][0]["name"]
-                                        inst_id=aff["id"]  
-                author_entry["affiliation"]={"institution":{"name":inst_name,"id":inst_id},
-                                              "group":{"name":group_name,"id":group_id}}  
-
-                entry["authors"].append(author_entry)
+                au_entry=author.copy()
+                if not "affiliations" in au_entry.keys():
+                    au_entry["affiliations"]=[]
+                author_db=None
+                if "id" in author.keys():
+                    if author["id"]=="":
+                        continue
+                    author_db=self.colav_db["person"].find_one({"_id":author["id"]})
+                else:
+                    continue
+                if author_db:
+                    au_entry={
+                        "id":author_db["_id"],
+                        "full_name":author_db["full_name"],
+                        "external_ids":[ext for ext in author_db["external_ids"] if not ext["source"] in ["Cédula de Ciudadanía","Cédula de Extranjería","Passport"]]
+                    }
+                affiliations=[]
+                aff_ids=[]
+                aff_types=[]
+                for aff in author["affiliations"]:
+                    if "id" in aff.keys():
+                        if aff["id"]:
+                            aff_db=self.colav_db["affiliations"].find_one({"_id":aff["id"]})
+                            if aff_db:
+                                aff_ids.append(aff["id"])
+                                aff_entry={
+                                    "id":aff_db["_id"],
+                                    "name":""
+                                }
+                                if author_db:
+                                    for aff_au in author_db["affiliations"]:
+                                        if aff_au["id"]==aff["id"]:
+                                            if "start_date" in aff_au.keys():
+                                                aff_entry["start_date"]=aff_au["start_date"]
+                                            if "end_date" in aff_au.keys():
+                                                aff_entry["end_date"]=aff_au["end_date"]
+                                            break
+                                name=aff_db["names"][0]["name"]
+                                lang=""
+                                for n in aff_db["names"]:
+                                    if "lang" in n.keys():
+                                        if n["lang"]=="es":
+                                            name=n["name"]
+                                            lang=n["lang"]
+                                            break
+                                        elif n["lang"]=="en":
+                                            name=n["name"]
+                                            lang=n["lang"]
+                                del(aff["names"])
+                                aff["name"]=name
+                                if "types" in aff.keys():
+                                    for typ in aff["types"]:
+                                        if "type" in typ.keys():
+                                            if not typ["type"] in aff_types:
+                                                aff_types.append(typ["type"])
+                                affiliations.append(aff)
+                if author_db:
+                    for aff in author_db["affiliations"]:
+                        if aff["id"] in aff_ids:
+                            continue
+                        if aff["id"]:
+                            aff_db=self.colav_db["affiliations"].find_one({"_id":aff["id"]})
+                            inst_already=False
+                            if aff_db:
+                                if "types" in aff_db.keys():
+                                    for typ in aff_db["types"]:
+                                        if "type" in typ.keys():
+                                            if typ["type"] in aff_types:
+                                                inst_already=True
+                                if inst_already:
+                                    continue
+                                aff_ids.append(aff["id"])
+                                aff_entry={
+                                    "id":aff_db["_id"],
+                                    "name":""
+                                }
+                                name=aff_db["names"][0]["name"]
+                                lang=""
+                                for n in aff_db["names"]:
+                                    if "lang" in n.keys():
+                                        if n["lang"]=="es":
+                                            name=n["name"]
+                                            lang=n["lang"]
+                                            break
+                                        elif n["lang"]=="en":
+                                            name=n["name"]
+                                            lang=n["lang"]
+                                aff["name"]=name
+                                affiliations.append(aff)
+                au_entry["affiliations"]=affiliations
+                authors.append(au_entry)
+            entry["authors"]=authors
             
             for ext in document["external_ids"]:
                 if ext["source"]=="doi":
