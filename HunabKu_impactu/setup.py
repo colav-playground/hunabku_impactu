@@ -86,8 +86,7 @@ def main():
             'pymongo',
             'cpi',
             'currency_converter',
-            'datetime',
-            'spacy'
+            'datetime'
         ],
     )
 

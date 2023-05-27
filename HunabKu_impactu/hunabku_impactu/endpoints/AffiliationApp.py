@@ -469,10 +469,11 @@ class AffiliationApp(HunabkuPluginBase):
         return{"plot":result}
 
     def get_title_words(self,idx):
-        data=[]
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"titles":{"$exists":1}},{"titles":1}):
-            data.append(work)
-        return {"plot":self.pies.most_used_words(data)}
+        data=self.impactu_db["affiliations"].find_one({"_id":ObjectId(idx)},{"top_words":1})["top_words"]
+        if data:
+            return {"plot":data}
+        else:
+            return None
     
     def get_citations_by_affiliations(self,idx,typ):
         affiliations=[]
