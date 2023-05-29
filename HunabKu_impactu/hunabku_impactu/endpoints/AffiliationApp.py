@@ -783,6 +783,7 @@ class AffiliationApp(HunabkuPluginBase):
     def get_coauthorships_worldmap(self,idx):
         data=[]
         pipeline=[
+            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
             {"$unwind":"$authors"},
             {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
             {"$unwind":"$_id"},
@@ -799,6 +800,7 @@ class AffiliationApp(HunabkuPluginBase):
     def get_coauthorships_colombiamap(self,idx):
         data=[]
         pipeline=[
+            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
             {"$unwind":"$authors"},
             {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
             {"$unwind":"$_id"},

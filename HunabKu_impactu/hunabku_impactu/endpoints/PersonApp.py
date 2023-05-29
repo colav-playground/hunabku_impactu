@@ -696,6 +696,7 @@ class PersonApp(HunabkuPluginBase):
     def get_coauthorships_worldmap(self,idx):
         data=[]
         pipeline=[
+            {"$match":{"authors.id":ObjectId(idx)}},
             {"$unwind":"$authors"},
             {"$group":{"_id":"$authors.id","count":{"$sum":1}}},
             {"$unwind":"$_id"},
@@ -712,6 +713,7 @@ class PersonApp(HunabkuPluginBase):
     def get_coauthorships_colombiamap(self,idx):
         data=[]
         pipeline=[
+            {"$match":{"authors.id":ObjectId(idx)}},
             {"$unwind":"$authors"},
             {"$group":{"_id":"$authors.id","count":{"$sum":1}}},
             {"$unwind":"$_id"},
