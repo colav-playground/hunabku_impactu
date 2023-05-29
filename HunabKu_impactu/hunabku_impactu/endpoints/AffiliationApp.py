@@ -402,7 +402,7 @@ class AffiliationApp(HunabkuPluginBase):
         data = []
         for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"citations_by_year":{"$ne":[]}},{"citations_by_year":1}):
             data.append(work)
-        result=self.bars.citations_by_year(data)
+        result=self.bars.h_index_by_year(data)
         return {"plot":result}
 
     def get_products_by_year_by_researcher_category(self,idx):

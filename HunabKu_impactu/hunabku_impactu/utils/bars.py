@@ -235,7 +235,7 @@ class bars():
         result_list=sorted(result_list,key=lambda x: x["x"])
         return result_list
 
-    #Anual H index from (temoporarily) openalex citations
+    #Anual H index from (temporarily) openalex citations
     def h_index_by_year(self,data):
         '''
         Returns a list of dicts of the form {x:year, y:h_index} sorted by year in ascending order, 
@@ -252,19 +252,37 @@ class bars():
         if len(data)<=0:
             return None
         h_by_year={}
+        works_total_citations_by_year=[]
         for work in data:
-            for citation in work["citations_by_year"]:
-                year=citation["year"]
-                if year in h_by_year.keys():
-                    h_by_year[year].append(citation["cited_by_count"])
+            acc_citations_by_year=[]
+            years=[]
+            sorted_citations=sorted(work["citations_by_year"],key=lambda x: x["year"])
+            for citation in sorted_citations:
+                if len(acc_citations_by_year)==0:
+                    acc_citations_by_year.append(
+                        {"year":citation["year"],
+                        "citations":citation["cited_by_count"]}
+                    )
                 else:
-                    h_by_year[year] = [citation["cited_by_count"]]
+                    acc_citations_by_year.append(
+                        {"year":citation["year"],
+                        "citations":citation["cited_by_count"]+acc_citations_by_year[-1]["citations"]}
+                    )
+            works_total_citations_by_year.append(acc_citations_by_year)
+        
+        for work in works_total_citations_by_year:
+            for citations in work:
+                year=citations["year"]
+                citations=citations["citations"]
+                if not year in h_by_year.keys():
+                    h_by_year[year] = [citations]
+                else:
+                    h_by_year[year].append(citations)
 
         index_by_year=[]
         years=set([x[0] for x in h_by_year.items()])
         for year in years:
-            citation_list=[x[1] for x in h_by_year.items() if x[0]<=year]
-            index_by_year.append({"x":year,"y":hindex(citation_list)})
+            index_by_year.append({"x":year,"y":hindex(h_by_year[year])})
         sorted_index_by_year=sorted(index_by_year,key=lambda x: x["x"])
         return sorted_index_by_year
 
