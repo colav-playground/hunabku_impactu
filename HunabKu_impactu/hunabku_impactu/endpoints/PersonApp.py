@@ -386,11 +386,14 @@ class PersonApp(HunabkuPluginBase):
         return{"plot":self.bars.products_by_year_by_group_category(data)}
 
     def get_title_words(self,idx):
-        data=self.impactu_db["person"].find_one({"_id":ObjectId(idx)},{"top_words":1})["top_words"]
+        data=self.impactu_db["person"].find_one({"_id":ObjectId(idx)},{"top_words":1})
         if data:
+            if not "top_words" in data.keys():
+                return {"plot":None}
+            data=data["top_words"]
             return {"plot":data}
         else:
-            return None
+            return {"plot":None}
     
     def get_citations_by_affiliations(self,idx,typ):
         affiliations=[]
