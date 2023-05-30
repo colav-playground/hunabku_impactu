@@ -390,17 +390,31 @@ class AffiliationApp(HunabkuPluginBase):
 
     def get_oa_by_year(self,idx,typ=None):
         data=[]
-        for work in self.colav_db["works"].find(
-            {
-                "authors.affiliations.id":ObjectId(idx),
-                "year_published":{"$exists":1},
-                "bibliographic_info.is_open_acess":{"$exists":1}
-            },
-            {
-                "year_published":1,"bibliographic_info.is_open_acess":1
-            }
-        ):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                for work in self.colav_db["works"].find(
+                    {
+                        "authors.id":author["_id"],
+                        "year_published":{"$exists":1},
+                        "bibliographic_info.is_open_acess":{"$exists":1}
+                    },
+                    {
+                        "year_published":1,"bibliographic_info.is_open_acess":1
+                    }
+                ):
+                    data.append(work)
+        else:
+            for work in self.colav_db["works"].find(
+                {
+                    "authors.affiliations.id":ObjectId(idx),
+                    "year_published":{"$exists":1},
+                    "bibliographic_info.is_open_acess":{"$exists":1}
+                },
+                {
+                    "year_published":1,"bibliographic_info.is_open_acess":1
+                }
+            ):
+                data.append(work)
         
         result=self.bars.oa_by_year(data)
         return {"plot":result}
@@ -897,7 +911,7 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="year_apc":
                         result=self.get_apc_by_year(idx,typ=typ)
                     elif plot=="year_oa":
-                        result=self.get_oa_by_year(idx,type=typ)
+                        result=self.get_oa_by_year(idx,typ=typ)
                     elif plot=="year_publisher":
                         result=self.get_products_by_year_by_publisher(idx)
                     elif plot=="year_h":
