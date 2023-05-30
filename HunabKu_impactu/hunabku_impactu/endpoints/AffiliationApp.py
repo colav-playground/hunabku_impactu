@@ -427,6 +427,7 @@ class AffiliationApp(HunabkuPluginBase):
             {"$match":{"authors.affiliations.id":ObjectId(idx)}},
             {"$project":{"year_published":1,"authors":1}},
             {"$unwind":"$authors"},
+            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
             {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"researcher"}},
             {"$project":{"year_published":1,"researcher.ranking":1}},
             {"$match":{"researcher.ranking.source":"scienti"}}

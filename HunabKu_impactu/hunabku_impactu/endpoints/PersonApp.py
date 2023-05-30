@@ -353,6 +353,30 @@ class PersonApp(HunabkuPluginBase):
         result=self.bars.h_index_by_year(data)
         return {"plot":result}
 
+    def get_products_by_year_by_researcher_category(self,idx):
+        data=[]
+        pipeline=[
+            {"$match":{"authors.id":ObjectId(idx)}},
+            {"$project":{"year_published":1,"authors":1}},
+            {"$unwind":"$authors"},
+            {"$match":{"authors.id":ObjectId(idx)}},
+            {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"researcher"}},
+            {"$project":{"year_published":1,"researcher.ranking":1}},
+            {"$match":{"researcher.ranking.source":"scienti"}}
+        ]
+        for work in self.colav_db["works"].aggregate(pipeline):
+            for researcher in work["researcher"]:
+                for rank in researcher["ranking"]:
+                    if rank["source"]=="scienti":
+                        data.append({"year_published":work["year_published"],"rank":rank["rank"]})
+        if not data:
+            return {"plot":None}
+        result=self.bars.products_by_year_by_researcher_category(data)
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
+
     def get_products_by_year_by_group_category(self,idx):
         data=[]
         info_db=self.colav_db["affiliations"].find_one({"_id":ObjectId(idx)},{"types":1,"relations":1,"ranking":1})
@@ -384,7 +408,6 @@ class PersonApp(HunabkuPluginBase):
                             for work in self.colav_db["works"].find({"authors.id":ObjectId(group["id"]),"year_published":{"$exists":1}},{"year_published":1}):
                                 work["ranking"]=info_group["ranking"]
                                 data.append(work)
-        print(data)
         return{"plot":self.bars.products_by_year_by_group_category(data)}
 
     def get_title_words(self,idx):
@@ -650,6 +673,7 @@ class PersonApp(HunabkuPluginBase):
         ]
         for work in self.colav_db["works"].aggregate(pipeline):
             data.append(work)
+        print(data)
         result=self.pies.products_by_age(data)
         return {"plot":result}
 
