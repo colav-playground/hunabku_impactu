@@ -62,7 +62,7 @@ class PersonApp(HunabkuPluginBase):
             entry={"id":person["_id"],
                 "name":person["full_name"],
                 "citations":person["citations_count"] if "citations_count" in person.keys() else None,
-                "external_urls":[ext for ext in person["external_urls"] if ext["source"]!="logo"] if "external_urls" in person.keys() else None,
+                "external_urls":[ext for ext in person["external_urls"] if ext["source"] not in ["logo","Cédula de Ciudadanía","Cédula de Extranjería","Passport"]] if "external_urls" in person.keys() else None,
                 "external_urls":person["external_ids"] if "external_ids" in person.keys() else None,
                 "logo":logo
             }
