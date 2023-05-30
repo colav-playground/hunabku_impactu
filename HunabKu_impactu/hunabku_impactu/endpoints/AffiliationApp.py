@@ -823,8 +823,11 @@ class AffiliationApp(HunabkuPluginBase):
         return {"plot":result}
 
     def get_coauthorships_network(self, idx):
-        data=self.impactu_db["affiliations"].find_one({"_id":ObjectId(idx)},{"coauthorship_network":1})["coauthorship_network"]
+        data=self.impactu_db["affiliations"].find_one({"_id":ObjectId(idx)},{"coauthorship_network":1})
         if data:
+            if "coauthorship_network" not in data.keys():
+                return {"plot":None}
+            data=data["coauthorship_network"]
             nodes=sorted(data["nodes"],key=lambda x:x["degree"],reverse=True)[:50]
             nodes_ids=[node["id"] for node in nodes]
             edges=[]
@@ -833,7 +836,7 @@ class AffiliationApp(HunabkuPluginBase):
                     edges.append(edge)
             return {"plot":{"nodes":nodes,"edges":edges}}
         else:
-            return None
+            return {"plot":None}
     
 
     @endpoint('/app/affiliation', methods=['GET'])
@@ -929,8 +932,6 @@ class AffiliationApp(HunabkuPluginBase):
                         result=self.get_coauthorships_colombiamap(idx)
                     elif plot=="collaboration_network":
                         result=self.get_coauthorships_network(idx)
-
-
                     
                 else:
                     idx = self.request.args.get('id')
