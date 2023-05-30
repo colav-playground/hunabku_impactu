@@ -55,9 +55,11 @@ class PersonApp(HunabkuPluginBase):
             if aff_id:
                 affiliation=self.colav_db["affiliations"].find_one({"_id":ObjectId(aff_id)})
             logo=""
-            for ext in affiliation["external_urls"]:
-                if ext["source"]=="logo":
-                    logo=ext["url"]
+            if affiliation:
+                if "external_urls" in affiliation.keys():
+                    for ext in affiliation["external_urls"]:
+                        if ext["source"]=="logo":
+                            logo=ext["url"]
 
             entry={"id":person["_id"],
                 "name":person["full_name"],
@@ -630,7 +632,10 @@ class PersonApp(HunabkuPluginBase):
             data.append(work["bibliographic_info"]["open_access_status"])
         
         result=self.pies.products_by_open_access_status(data)
-        return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["type"]!="closed"])}
+        if result:
+            return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["type"]!="closed"])}
+        else:
+            return {"plot":None,"openSum":0}
     
     def get_products_by_author_age(self,idx):
         data=[]
