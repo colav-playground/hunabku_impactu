@@ -154,7 +154,7 @@ class bars():
                 else:
                     result[reg["year_published"]]+=value
         sorted_result=sorted(result.items(),key=lambda x: x[0])
-        result_list=[{"x":x[0],"y":x[1]} for x in sorted_result]
+        result_list=[{"x":x[0],"y":int(x[1])} for x in sorted_result]
         return result_list
 
     #number of papers in openaccess or closed access

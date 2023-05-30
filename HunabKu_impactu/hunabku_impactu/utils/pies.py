@@ -65,7 +65,7 @@ class pies():
                         result[name]+=value
         result_list=[]
         for idx,value in result.items():
-            result_list.append({"name":idx,"value":value})
+            result_list.append({"name":idx,"value":int(value)})
         return result_list
 
     # H index for each faculty department or group
