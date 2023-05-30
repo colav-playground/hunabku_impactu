@@ -336,12 +336,20 @@ class AffiliationApp(HunabkuPluginBase):
         return {"plot":self.bars.products_by_affiliation_by_type(data)}
 
 
-    def get_citations_by_year(self,idx):
+    def get_citations_by_year(self,idx,typ=None):
         data = []
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"citations_by_year":{"$ne":[]},"year_published":{"$exists":1}},{"year_published":1,"citations_by_year":1}):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                for work in self.colav_db["works"].find({"authors.id":author["_id"],"citations_by_year":{"$ne":[]},"year_published":{"$exists":1}},{"year_published":1,"citations_by_year":1}):
+                    data.append(work)
+        else:
+            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"citations_by_year":{"$ne":[]},"year_published":{"$exists":1}},{"year_published":1,"citations_by_year":1}):
+                data.append(work)
         result=self.bars.citations_by_year(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
         
     def get_apc_by_year(self,idx):
         data = []
@@ -854,7 +862,8 @@ class AffiliationApp(HunabkuPluginBase):
                     if plot=="group_type":
                         result=self.get_products_by_affiliation_by_type(idx,typ="group")
                     elif plot=="year_citations":
-                        result=self.get_citations_by_year(idx)
+                        typ = self.request.args.get('type')
+                        result=self.get_citations_by_year(idx,typ=typ)
                     elif plot=="year_apc":
                         result=self.get_apc_by_year(idx)
                     elif plot=="year_oa":
