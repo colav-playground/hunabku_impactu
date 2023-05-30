@@ -292,12 +292,20 @@ class AffiliationApp(HunabkuPluginBase):
                     "total_results":total
                 }
 
-    def get_products_by_year_by_type(self,idx):
+    def get_products_by_year_by_type(self,idx,typ=None):
         data = []
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1}},{"year_published":1,"types":1}):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                for work in self.colav_db["works"].find({"authors.id":author["_id"],"year_published":{"$exists":1}},{"year_published":1,"types":1}):
+                    data.append(work)
+        else:
+            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"year_published":{"$exists":1}},{"year_published":1,"types":1}):
+                data.append(work)
         result=self.bars.products_by_year_by_type(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
     def get_products_by_affiliation_by_type(self,idx,typ):
         affiliations=[]
@@ -860,7 +868,8 @@ class AffiliationApp(HunabkuPluginBase):
                 plot=self.request.args.get("plot")
                 if plot:
                     if plot=="year_type":
-                        result=self.get_products_by_year_by_type(idx)
+                        typ = self.request.args.get('type')
+                        result=self.get_products_by_year_by_type(idx,typ=typ)
                     if plot=="faculty_type":
                         result=self.get_products_by_affiliation_by_type(idx,typ="faculty")
                     if plot=="department_type":

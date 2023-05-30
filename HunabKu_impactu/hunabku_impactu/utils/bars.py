@@ -26,7 +26,6 @@ class bars():
             print(type(data))
             return None
         if len(data)==0:
-            print(len(data))
             return None
         result={}
         for work in data:
