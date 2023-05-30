@@ -633,7 +633,7 @@ class PersonApp(HunabkuPluginBase):
         
         result=self.pies.products_by_open_access_status(data)
         if result:
-            return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["type"]!="closed"])}
+            return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["name"]!="closed"])}
         else:
             return {"plot":None,"openSum":0}
     
