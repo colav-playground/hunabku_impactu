@@ -701,7 +701,7 @@ class PersonApp(HunabkuPluginBase):
         pipeline=[
             {"$match":{"authors.id":ObjectId(idx)}},
             {"$unwind":"$authors"},
-            {"$group":{"_id":"$authors.id","count":{"$sum":1}}},
+            {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
             {"$unwind":"$_id"},
             {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
             {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.country":1}},
@@ -718,7 +718,7 @@ class PersonApp(HunabkuPluginBase):
         pipeline=[
             {"$match":{"authors.id":ObjectId(idx)}},
             {"$unwind":"$authors"},
-            {"$group":{"_id":"$authors.id","count":{"$sum":1}}},
+            {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
             {"$unwind":"$_id"},
             {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
             {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.city":1}},
