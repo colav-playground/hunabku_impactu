@@ -741,25 +741,45 @@ class AffiliationApp(HunabkuPluginBase):
                     
         return {"plot":self.pies.hindex_by_affiliation(data)}
 
-    def get_products_by_publisher(self,idx):
+    def get_products_by_publisher(self,idx,typ=None):
         data=[]
-        for work in self.colav_db["works"].find(
-            {
-                "authors.affiliations.id":ObjectId(idx),
-                "source.id":{"$exists":1}
-            },{"source.id":1}
-        ):
-            if not "source" in work.keys():
-                continue
-            if not "id" in work["source"].keys():
-                continue
-            source_db=self.colav_db["sources"].find_one({"_id":work["source"]["id"],"publisher.name":{"$ne":nan}})
-            if source_db:
-                if source_db["publisher"]:
-                    data.append({"publisher":source_db["publisher"]})
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                for work in self.colav_db["works"].find(
+                    {
+                        "authors.id":author["_id"],
+                        "source.id":{"$exists":1}
+                    },{"source.id":1}
+                ):
+                    if not "source" in work.keys():
+                        continue
+                    if not "id" in work["source"].keys():
+                        continue
+                    source_db=self.colav_db["sources"].find_one({"_id":work["source"]["id"],"publisher.name":{"$ne":nan}})
+                    if source_db:
+                        if source_db["publisher"]:
+                            data.append({"publisher":source_db["publisher"]})
+        else:
+            for work in self.colav_db["works"].find(
+                {
+                    "authors.affiliations.id":ObjectId(idx),
+                    "source.id":{"$exists":1}
+                },{"source.id":1}
+            ):
+                if not "source" in work.keys():
+                    continue
+                if not "id" in work["source"].keys():
+                    continue
+                source_db=self.colav_db["sources"].find_one({"_id":work["source"]["id"],"publisher.name":{"$ne":nan}})
+                if source_db:
+                    if source_db["publisher"]:
+                        data.append({"publisher":source_db["publisher"]})
         
         result=self.pies.products_by_publisher(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
     
     def get_products_by_subject(self,idx,level=0):
         if not level:
@@ -1002,7 +1022,7 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="h_group":
                         result = self.get_h_by_affiliations(idx,typ="group")
                     elif plot=="products_publisher":
-                        result=self.get_products_by_publisher(idx)
+                        result=self.get_products_by_publisher(idx,typ=typ)
                     elif plot=="products_subject":
                         level=self.request.args.get('level')
                         if not level:
