@@ -839,19 +839,23 @@ class AffiliationApp(HunabkuPluginBase):
         else:
             return {"plot":None}
 
-    def get_products_by_database(self,idx):
+    def get_products_by_database(self,idx,typ=None):
         data=[]
-        for work in self.colav_db["works"].find(
-            {
-                "authors.affiliations.id":ObjectId(idx)
-            },{"updated":1}
-        ):
-            data.append(work["updated"])
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                    for work in self.colav_db["works"].find({"authors.id":author["_id"]},{"updated":1}):
+                        data.append(work["updated"])
+        else:
+            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx)},{"updated":1}):
+                data.append(work["updated"])
         
         result=self.pies.products_by_database(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
-    def get_products_by_open_access_status(self,idx):
+    def get_products_by_open_access_status(self,idx,typ=None):
         data=[]
         for work in self.colav_db["works"].find(
             {
@@ -864,20 +868,37 @@ class AffiliationApp(HunabkuPluginBase):
         result=self.pies.products_by_open_access_status(data)
         return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["name"]!="closed"])}
     
-    def get_products_by_author_sex(self,idx):
+    def get_products_by_author_sex(self,idx,typ=None):
         data=[]
-        pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
-            {"$project":{"authors":1}},
-            {"$unwind":"$authors"},
-            {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
-            {"$project":{"author.sex":1}},
-            {"$match":{"author.sex":{"$ne":"","$exists":1}}}
-        ]
-        for work in self.colav_db["works"].aggregate(pipeline):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                pipeline=[
+                    {"$match":{"authors.id":author["_id"]}},
+                    {"$project":{"authors":1}},
+                    {"$unwind":"$authors"},
+                    {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
+                    {"$project":{"author.sex":1}},
+                    {"$match":{"author.sex":{"$ne":"","$exists":1}}}
+                ]
+                for work in self.colav_db["works"].aggregate(pipeline):
+                    data.append(work)
+        else:
+            pipeline=[
+                {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+                {"$project":{"authors":1}},
+                {"$unwind":"$authors"},
+                {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
+                {"$project":{"author.sex":1}},
+                {"$match":{"author.sex":{"$ne":"","$exists":1}}}
+            ]
+            for work in self.colav_db["works"].aggregate(pipeline):
+                data.append(work)
+    
         result=self.pies.products_by_sex(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
     def get_products_by_author_age(self,idx):
         data=[]
@@ -1057,11 +1078,11 @@ class AffiliationApp(HunabkuPluginBase):
                             level=0
                         result=self.get_products_by_subject(idx,typ=typ,level=level)
                     elif plot=="products_database":
-                        result=self.get_products_by_database(idx)
+                        result=self.get_products_by_database(idx,typ=typ)
                     elif plot=="products_oa":
-                        result=self.get_products_by_open_access_status(idx)
+                        result=self.get_products_by_open_access_status(idx,typ=typ)
                     elif plot=="products_sex":
-                        result=self.get_products_by_author_sex(idx)
+                        result=self.get_products_by_author_sex(idx,typ=typ)
                     elif plot=="products_age":
                         result=self.get_products_by_author_age(idx)
                     elif plot=="scienti_rank":
