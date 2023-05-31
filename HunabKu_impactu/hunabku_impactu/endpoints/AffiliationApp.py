@@ -485,23 +485,43 @@ class AffiliationApp(HunabkuPluginBase):
         else:
             return {"plot":None}
 
-    def get_products_by_year_by_researcher_category(self,idx):
+    def get_products_by_year_by_researcher_category(self,idx,typ=None):
         data=[]
-        pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
-            {"$project":{"year_published":1,"authors":1}},
-            {"$unwind":"$authors"},
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
-            {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"researcher"}},
-            {"$project":{"year_published":1,"researcher.ranking":1}},
-            {"$match":{"researcher.ranking.source":"scienti"}}
-        ]
-        for work in self.colav_db["works"].aggregate(pipeline):
-            for researcher in work["researcher"]:
-                for rank in researcher["ranking"]:
-                    if rank["source"]=="scienti":
-                        data.append({"year_published":work["year_published"],"rank":rank["rank"]})
-        return {"plot":self.bars.products_by_year_by_researcher_category(data)}
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                pipeline=[
+                    {"$match":{"authors.id":author["_id"]}},
+                    {"$project":{"year_published":1,"authors":1}},
+                    {"$unwind":"$authors"},
+                    {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"researcher"}},
+                    {"$project":{"year_published":1,"researcher.ranking":1,"researcher._id":1}},
+                    {"$match":{"researcher.ranking.source":"scienti"}}
+                ]
+                for work in self.colav_db["works"].aggregate(pipeline):
+                    for researcher in work["researcher"]:
+                        for rank in researcher["ranking"]:
+                            if rank["source"]=="scienti":
+                                data.append({"year_published":work["year_published"],"rank":rank["rank"]})
+        else:
+            pipeline=[
+                {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+                {"$project":{"year_published":1,"authors":1}},
+                {"$unwind":"$authors"},
+                {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+                {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"researcher"}},
+                {"$project":{"year_published":1,"researcher.ranking":1}},
+                {"$match":{"researcher.ranking.source":"scienti"}}
+            ]
+            for work in self.colav_db["works"].aggregate(pipeline):
+                for researcher in work["researcher"]:
+                    for rank in researcher["ranking"]:
+                        if rank["source"]=="scienti":
+                            data.append({"year_published":work["year_published"],"rank":rank["rank"]})
+        result=self.bars.products_by_year_by_researcher_category(data)
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
     def get_products_by_year_by_group_category(self,idx):
         data=[]
@@ -952,7 +972,7 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="year_h":
                         result=self.get_h_by_year(idx,typ=typ)
                     elif plot=="year_researcher":
-                        result=self.get_products_by_year_by_researcher_category(idx)
+                        result=self.get_products_by_year_by_researcher_category(idx,typ=typ)
                     elif plot=="year_group":
                         result=self.get_products_by_year_by_group_category(idx)
                     elif plot=="title_words":
