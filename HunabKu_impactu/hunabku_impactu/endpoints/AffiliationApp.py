@@ -417,38 +417,73 @@ class AffiliationApp(HunabkuPluginBase):
                 data.append(work)
         
         result=self.bars.oa_by_year(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
-    def get_products_by_year_by_publisher(self,idx):
+    def get_products_by_year_by_publisher(self,idx,typ=None):
         data=[]
-        for work in self.colav_db["works"].find(
-            {
-                "authors.affiliations.id":ObjectId(idx),
-                "year_published":{"$exists":1},
-                "source.id":{"$exists":1}
-            },
-            {
-                "year_published":1,"source.id":1
-            }
-        ):
-            if not "source" in work.keys():
-                continue
-            if not "id" in work["source"].keys():
-                continue
-            source_db=self.colav_db["sources"].find_one({"_id":work["source"]["id"]})
-            if source_db:
-                if source_db["publisher"]:
-                    data.append({"year_published":work["year_published"],"publisher":source_db["publisher"]})
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                for work in self.colav_db["works"].find(
+                    {
+                        "authors.id":author["_id"],
+                        "year_published":{"$exists":1},
+                        "source.id":{"$exists":1}
+                    },
+                    {
+                        "year_published":1,"source.id":1
+                    }
+                ):
+                    if not "source" in work.keys():
+                        continue
+                    if not "id" in work["source"].keys():
+                        continue
+                    source_db=self.colav_db["sources"].find_one({"_id":work["source"]["id"]})
+                    if source_db:
+                        if source_db["publisher"]:
+                            data.append({"year_published":work["year_published"],"publisher":source_db["publisher"]})
+        else:
+            for work in self.colav_db["works"].find(
+                {
+                    "authors.affiliations.id":ObjectId(idx),
+                    "year_published":{"$exists":1},
+                    "source.id":{"$exists":1}
+                },
+                {
+                    "year_published":1,"source.id":1
+                }
+            ):
+                if not "source" in work.keys():
+                    continue
+                if not "id" in work["source"].keys():
+                    continue
+                source_db=self.colav_db["sources"].find_one({"_id":work["source"]["id"]})
+                if source_db:
+                    if source_db["publisher"]:
+                        data.append({"year_published":work["year_published"],"publisher":source_db["publisher"]})
         
         result=self.bars.products_by_year_by_publisher(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
-    def get_h_by_year(self,idx):
+    def get_h_by_year(self,idx,typ=None):
         data = []
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"citations_by_year":{"$ne":[]}},{"citations_by_year":1}):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                for work in self.colav_db["works"].find({"authors.id":author["_id"],"citations_by_year":{"$ne":[]}},{"citations_by_year":1}):
+                    data.append(work)
+        else:
+            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"citations_by_year":{"$ne":[]}},{"citations_by_year":1}):
+                data.append(work)
         result=self.bars.h_index_by_year(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
     def get_products_by_year_by_researcher_category(self,idx):
         data=[]
@@ -913,9 +948,9 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="year_oa":
                         result=self.get_oa_by_year(idx,typ=typ)
                     elif plot=="year_publisher":
-                        result=self.get_products_by_year_by_publisher(idx)
+                        result=self.get_products_by_year_by_publisher(idx,typ=typ)
                     elif plot=="year_h":
-                        result=self.get_h_by_year(idx)
+                        result=self.get_h_by_year(idx,typ=typ)
                     elif plot=="year_researcher":
                         result=self.get_products_by_year_by_researcher_category(idx)
                     elif plot=="year_group":
