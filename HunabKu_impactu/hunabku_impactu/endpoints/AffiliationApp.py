@@ -857,13 +857,23 @@ class AffiliationApp(HunabkuPluginBase):
 
     def get_products_by_open_access_status(self,idx,typ=None):
         data=[]
-        for work in self.colav_db["works"].find(
-            {
-                "authors.affiliations.id":ObjectId(idx),
-                "bibliographic_info.open_access_status":{"$exists":1,"$ne":None}
-            },{"bibliographic_info.open_access_status":1}
-        ):
-            data.append(work["bibliographic_info"]["open_access_status"])
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                for work in self.colav_db["works"].find(
+                    {
+                        "authors.id":author["_id"],
+                        "bibliographic_info.open_access_status":{"$exists":1,"$ne":None}
+                    },{"bibliographic_info.open_access_status":1}
+                ):
+                    data.append(work["bibliographic_info"]["open_access_status"])
+        else:
+            for work in self.colav_db["works"].find(
+                {
+                    "authors.affiliations.id":ObjectId(idx),
+                    "bibliographic_info.open_access_status":{"$exists":1,"$ne":None}
+                },{"bibliographic_info.open_access_status":1}
+            ):
+                data.append(work["bibliographic_info"]["open_access_status"])
         
         result=self.pies.products_by_open_access_status(data)
         return {"plot":result,"openSum":sum([oa["value"] for oa in result if oa["name"]!="closed"])}
