@@ -910,21 +910,39 @@ class AffiliationApp(HunabkuPluginBase):
         else:
             return {"plot":None}
 
-    def get_products_by_author_age(self,idx):
+    def get_products_by_author_age(self,idx,typ=None):
         data=[]
-        pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
-            {"$project":{"authors":1,"date_published":1,"year_published":1}},
-            {"$unwind":"$authors"},
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
-            {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
-            {"$project":{"author.birthdate":1,"date_published":1,"year_published":1}},
-            {"$match":{"author.birthdate":{"$ne":-1,"$exists":1}}}
-        ]
-        for work in self.colav_db["works"].aggregate(pipeline):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                pipeline=[
+                    {"$match":{"authors.id":author["_id"]}},
+                    {"$project":{"authors":1,"date_published":1,"year_published":1}},
+                    {"$unwind":"$authors"},
+                    #{"$match":{"authors.affiliations.id":ObjectId(idx)}},
+                    {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
+                    {"$project":{"author.birthdate":1,"date_published":1,"year_published":1}},
+                    {"$match":{"author.birthdate":{"$ne":-1,"$exists":1}}}
+                ]
+                for work in self.colav_db["works"].aggregate(pipeline):
+                    data.append(work)
+        else:
+            pipeline=[
+                {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+                {"$project":{"authors":1,"date_published":1,"year_published":1}},
+                {"$unwind":"$authors"},
+                {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+                {"$lookup":{"from":"person","localField":"authors.id","foreignField":"_id","as":"author"}},
+                {"$project":{"author.birthdate":1,"date_published":1,"year_published":1}},
+                {"$match":{"author.birthdate":{"$ne":-1,"$exists":1}}}
+            ]
+            for work in self.colav_db["works"].aggregate(pipeline):
+                data.append(work)
+        
         result=self.pies.products_by_age(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
     def get_products_by_scienti_rank(self,idx):
         data=[]
@@ -1094,7 +1112,7 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="products_sex":
                         result=self.get_products_by_author_sex(idx,typ=typ)
                     elif plot=="products_age":
-                        result=self.get_products_by_author_age(idx)
+                        result=self.get_products_by_author_age(idx,typ=typ)
                     elif plot=="scienti_rank":
                         result=self.get_products_by_scienti_rank(idx)
                     elif plot=="scimago_rank":
