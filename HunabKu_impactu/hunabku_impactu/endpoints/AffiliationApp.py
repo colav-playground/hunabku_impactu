@@ -781,35 +781,63 @@ class AffiliationApp(HunabkuPluginBase):
         else:
             return {"plot":None}
     
-    def get_products_by_subject(self,idx,level=0):
+    def get_products_by_subject(self,idx,level=0,typ=None):
         if not level:
             level=0
         data=[]
-        for work in self.colav_db["works"].find(
-            {
-                "authors.affiliations.id":ObjectId(idx),
-                "subjects":{"$exists":1}
-            },{"subjects":1}
-        ):
-            if not "subjects" in work.keys():
-                continue
-            for subjects in work["subjects"]:
-                if subjects["source"]!="openalex":
-                    continue
-                for subject in subjects["subjects"]:
-                    if subject["level"]!=level:
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                for work in self.colav_db["works"].find(
+                    {
+                        "authors.id":author["_id"],
+                        "subjects":{"$exists":1}
+                    },{"subjects":1}
+                ):
+                    if not "subjects" in work.keys():
                         continue
-                    name=subject["names"][0]["name"]
-                    for n in subject["names"]:
-                        if n["lang"]=="es":
-                            name=n["name"]
-                            break
-                        elif n["lang"]=="en":
-                            name=n["name"]
-                    data.append({"subject":{"name":name}})
+                    for subjects in work["subjects"]:
+                        if subjects["source"]!="openalex":
+                            continue
+                        for subject in subjects["subjects"]:
+                            if subject["level"]!=level:
+                                continue
+                            name=subject["names"][0]["name"]
+                            for n in subject["names"]:
+                                if n["lang"]=="es":
+                                    name=n["name"]
+                                    break
+                                elif n["lang"]=="en":
+                                    name=n["name"]
+                            data.append({"subject":{"name":name}})
+        else:
+            for work in self.colav_db["works"].find(
+                {
+                    "authors.affiliations.id":ObjectId(idx),
+                    "subjects":{"$exists":1}
+                },{"subjects":1}
+            ):
+                if not "subjects" in work.keys():
+                    continue
+                for subjects in work["subjects"]:
+                    if subjects["source"]!="openalex":
+                        continue
+                    for subject in subjects["subjects"]:
+                        if subject["level"]!=level:
+                            continue
+                        name=subject["names"][0]["name"]
+                        for n in subject["names"]:
+                            if n["lang"]=="es":
+                                name=n["name"]
+                                break
+                            elif n["lang"]=="en":
+                                name=n["name"]
+                        data.append({"subject":{"name":name}})
         
         result=self.pies.products_by_subject(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
     def get_products_by_database(self,idx):
         data=[]
@@ -1027,7 +1055,7 @@ class AffiliationApp(HunabkuPluginBase):
                         level=self.request.args.get('level')
                         if not level:
                             level=0
-                        result=self.get_products_by_subject(idx,level)
+                        result=self.get_products_by_subject(idx,typ=typ,level=level)
                     elif plot=="products_database":
                         result=self.get_products_by_database(idx)
                     elif plot=="products_oa":
