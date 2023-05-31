@@ -944,26 +944,50 @@ class AffiliationApp(HunabkuPluginBase):
         else:
             return {"plot":None}
 
-    def get_products_by_scienti_rank(self,idx):
+    def get_products_by_scienti_rank(self,idx,typ=None):
         data=[]
-        for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"ranking":{"$ne":[]}},{"ranking":1}):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                for work in self.colav_db["works"].find({"authors.id":author["_id"],"ranking":{"$ne":[]}},{"ranking":1}):
+                    data.append(work)
+        else:
+            for work in self.colav_db["works"].find({"authors.affiliations.id":ObjectId(idx),"ranking":{"$ne":[]}},{"ranking":1}):
+                data.append(work)
         result=self.pies.products_by_scienti_rank(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
-    def get_products_by_scimago_rank(self,idx):
+    def get_products_by_scimago_rank(self,idx,typ=None):
         data=[]
-        pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
-            {"$project":{"source":1,"date_published":1}},
-            {"$lookup":{"from":"sources","localField":"source.id","foreignField":"_id","as":"source"}},
-            {"$unwind":"$source"},
-            {"$project":{"source.ranking":1,"date_published":1}}
-        ]
-        for work in self.colav_db["works"].aggregate(pipeline):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                pipeline=[
+                    {"$match":{"authors.id":author["_id"]}},
+                    {"$project":{"source":1,"date_published":1}},
+                    {"$lookup":{"from":"sources","localField":"source.id","foreignField":"_id","as":"source"}},
+                    {"$unwind":"$source"},
+                    {"$project":{"source.ranking":1,"date_published":1}}
+                ]
+                for work in self.colav_db["works"].aggregate(pipeline):
+                    data.append(work)
+        else:
+            pipeline=[
+                {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+                {"$project":{"source":1,"date_published":1}},
+                {"$lookup":{"from":"sources","localField":"source.id","foreignField":"_id","as":"source"}},
+                {"$unwind":"$source"},
+                {"$project":{"source.ranking":1,"date_published":1}}
+            ]
+            for work in self.colav_db["works"].aggregate(pipeline):
+                data.append(work)
+
         result=self.pies.products_by_scimago_rank(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
     def get_publisher_same_institution(self,idx):
         data=[]
@@ -1114,9 +1138,9 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="products_age":
                         result=self.get_products_by_author_age(idx,typ=typ)
                     elif plot=="scienti_rank":
-                        result=self.get_products_by_scienti_rank(idx)
+                        result=self.get_products_by_scienti_rank(idx,typ=typ)
                     elif plot=="scimago_rank":
-                        result=self.get_products_by_scimago_rank(idx)
+                        result=self.get_products_by_scimago_rank(idx,typ=typ)
                     elif plot=="published_institution":
                         result=self.get_publisher_same_institution(idx)
                     elif plot=="collaboration_worldmap":
