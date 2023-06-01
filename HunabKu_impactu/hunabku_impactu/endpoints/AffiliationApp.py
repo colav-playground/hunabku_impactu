@@ -989,7 +989,7 @@ class AffiliationApp(HunabkuPluginBase):
         else:
             return {"plot":None}
 
-    def get_publisher_same_institution(self,idx):
+    def get_publisher_same_institution(self,idx,typ=None):
         data=[]
         institution=self.colav_db["affiliations"].find_one({"_id":ObjectId(idx)},{"names":1})
         pipeline=[
@@ -1003,43 +1003,81 @@ class AffiliationApp(HunabkuPluginBase):
         for work in self.colav_db["works"].aggregate(pipeline):
             data.append(work)
         result=self.pies.products_editorial_same_institution(data,institution)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
 
-    def get_coauthorships_worldmap(self,idx):
+    def get_coauthorships_worldmap(self,idx,typ=None):
         data=[]
-        pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
-            {"$unwind":"$authors"},
-            {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
-            {"$unwind":"$_id"},
-            {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
-            {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.country":1}},
-            {"$unwind":"$affiliation"},
-            {"$unwind":"$affiliation.addresses"}
-        ]
-        for work in self.colav_db["works"].aggregate(pipeline):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                pipeline=[
+                    {"$match":{"authors.id":author["_id"]}},
+                    {"$unwind":"$authors"},
+                    {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
+                    {"$unwind":"$_id"},
+                    {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
+                    {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.country":1}},
+                    {"$unwind":"$affiliation"},
+                    {"$unwind":"$affiliation.addresses"}
+                ]
+                for work in self.colav_db["works"].aggregate(pipeline):
+                    data.append(work)
+        else:
+            pipeline=[
+                {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+                {"$unwind":"$authors"},
+                {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
+                {"$unwind":"$_id"},
+                {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
+                {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.country":1}},
+                {"$unwind":"$affiliation"},
+                {"$unwind":"$affiliation.addresses"}
+            ]
+            for work in self.colav_db["works"].aggregate(pipeline):
+                data.append(work)
         result=self.maps.get_coauthorship_world_map(data)
-        return {"plot":result}
+        if result:
+            return {"plot":result}
+        else:
+            return {"plot":None}
     
-    def get_coauthorships_colombiamap(self,idx):
+    def get_coauthorships_colombiamap(self,idx,typ=None):
         data=[]
-        pipeline=[
-            {"$match":{"authors.affiliations.id":ObjectId(idx)}},
-            {"$unwind":"$authors"},
-            {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
-            {"$unwind":"$_id"},
-            {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
-            {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.city":1}},
-            {"$unwind":"$affiliation"},
-            {"$unwind":"$affiliation.addresses"}
-        ]
-        for work in self.colav_db["works"].aggregate(pipeline):
-            data.append(work)
+        if typ in ["group","department","faculty"]:
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"affiliations":1}):
+                pipeline=[
+                    {"$match":{"authors.id":author["_id"]}},
+                    {"$unwind":"$authors"},
+                    {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
+                    {"$unwind":"$_id"},
+                    {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
+                    {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.city":1}},
+                    {"$unwind":"$affiliation"},
+                    {"$unwind":"$affiliation.addresses"}
+                ]
+                for work in self.colav_db["works"].aggregate(pipeline):
+                    data.append(work)
+        else:
+            pipeline=[
+                {"$match":{"authors.affiliations.id":ObjectId(idx)}},
+                {"$unwind":"$authors"},
+                {"$group":{"_id":"$authors.affiliations.id","count":{"$sum":1}}},
+                {"$unwind":"$_id"},
+                {"$lookup":{"from":"affiliations","localField":"_id","foreignField":"_id","as":"affiliation"}},
+                {"$project":{"count":1,"affiliation.addresses.country_code":1,"affiliation.addresses.city":1}},
+                {"$unwind":"$affiliation"},
+                {"$unwind":"$affiliation.addresses"}
+            ]
+            for work in self.colav_db["works"].aggregate(pipeline):
+                data.append(work)
         result=self.maps.get_coauthorship_colombia_map(data)
         return {"plot":result}
 
-    def get_coauthorships_network(self, idx):
+    def get_coauthorships_network(self, idx,typ=None):
+        if typ in ["group","department","faculty"]:
+            return {"plot":None}
         data=self.impactu_db["affiliations"].find_one({"_id":ObjectId(idx)},{"coauthorship_network":1})
         if data:
             if "coauthorship_network" not in data.keys():
@@ -1142,13 +1180,13 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot=="scimago_rank":
                         result=self.get_products_by_scimago_rank(idx,typ=typ)
                     elif plot=="published_institution":
-                        result=self.get_publisher_same_institution(idx)
+                        result=self.get_publisher_same_institution(idx,typ=typ)
                     elif plot=="collaboration_worldmap":
-                        result=self.get_coauthorships_worldmap(idx)
+                        result=self.get_coauthorships_worldmap(idx,typ=typ)
                     elif plot=="collaboration_colombiamap":
-                        result=self.get_coauthorships_colombiamap(idx)
+                        result=self.get_coauthorships_colombiamap(idx,typ=typ)
                     elif plot=="collaboration_network":
-                        result=self.get_coauthorships_network(idx)
+                        result=self.get_coauthorships_network(idx,typ=typ)
                     
                 else:
                     idx = self.request.args.get('id')
