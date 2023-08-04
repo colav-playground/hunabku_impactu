@@ -81,7 +81,7 @@ class SearchApi(HunabkuPluginBase):
             search_dict["affiliations.id"]={"$in":aff_list}
 
         if keywords:
-            search_dict["$text"]={"$search":keywords}
+            search_dict["$text"]={"$search":keywords} 
             filter_cursor=self.colav_db['person'].find({"$text":{"$search":keywords},"external_ids":{"$ne":[]}},{ "score": { "$meta": "textScore" } }).sort([("score", { "$meta": "textScore" } )])
         else:
             filter_cursor=self.colav_db['person'].find({"external_ids":{"$ne":[]}})
@@ -174,9 +174,11 @@ class SearchApi(HunabkuPluginBase):
         if keywords:
             search_dict["$text"]={"$search":keywords}
 
-        cursor=self.colav_db['affiliations'].find(search_dict,{"score":{"$meta":"textScore"}})
+            cursor=self.colav_db['affiliations'].find(search_dict,{"score":{"$meta":"textScore"}})
         
-        cursor.sort([("score", { "$meta": "textScore" } )])
+            cursor.sort([("score", { "$meta": "textScore" } )])
+        else:
+            cursor=self.colav_db['affiliations'].find(search_dict)
 
         total=self.colav_db['affiliations'].count_documents(search_dict)
 
