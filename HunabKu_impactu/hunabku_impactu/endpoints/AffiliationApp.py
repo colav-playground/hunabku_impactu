@@ -6,7 +6,6 @@ from hunabku_impactu.utils.encoder import JsonEncoder
 from hunabku_impactu.utils.bars import bars
 from hunabku_impactu.utils.pies import pies
 from hunabku_impactu.utils.maps import maps
-from hunabku_impactu.utils.tables import tables
 from math import nan
 
 
@@ -24,7 +23,6 @@ class AffiliationApp(HunabkuPluginBase):
         self.bars=bars()
         self.pies=pies()
         self.maps=maps()
-        self.tables=tables()
 
     def get_info(self,idx,start_year=None,end_year=None):
         initial_year=9999
