@@ -85,7 +85,7 @@ def main():
             'hunabku',
             'pymongo',
             'cpi',
-            'currency_converter',
+            'currencyconverter',
             'datetime'
         ],
     )

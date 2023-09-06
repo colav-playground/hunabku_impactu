@@ -6,6 +6,7 @@ from hunabku_impactu.utils.encoder import JsonEncoder
 from hunabku_impactu.utils.bars import bars
 from hunabku_impactu.utils.pies import pies
 from hunabku_impactu.utils.maps import maps
+from hunabku_impactu.utils.tables import tables
 from math import nan
 
 
@@ -23,6 +24,7 @@ class AffiliationApp(HunabkuPluginBase):
         self.bars=bars()
         self.pies=pies()
         self.maps=maps()
+        self.tables=tables()
 
     def get_info(self,idx,start_year=None,end_year=None):
         initial_year=9999
@@ -91,9 +93,143 @@ class AffiliationApp(HunabkuPluginBase):
                         break
 
         return data
+
+    def process_work(self,work):
+        paper={
+            "id":work["_id"],
+            "title":"",
+            "authors":[],
+            "source":{},
+            "year_published":work["year_published"] if "year_published" in work.keys() else None,
+            "citations_count":work["citations_count"],
+            "open_access_status":work["bibliographic_info"]["open_access_status"] if "open_access_status" in work["bibliographic_info"] else "",
+            "subjects":[]
+        }
+
+        paper["title"]=work["titles"][0]["title"] if "titles" in work.keys() else ""
+        for w in work["titles"]:
+            if w["lang"] in ["es","en"]:
+                paper["title"]=w["title"]
+                break
+
+        if "source" in work.keys():
+            if "id" in work["source"].keys():
+                if "name" in work["source"].keys():
+                    paper["source"]={"name":work["source"]["name"],"id":work["source"]["id"]}
+                elif "names" in paper["source"].keys():
+                    paper["source"]={"name":work["source"]["names"][0]["name"],"id":work["source"]["id"]}
+
+        for subs in work["subjects"]:
+            if subs["source"]=="openalex":
+                for sub in subs["subjects"]:
+                    name=sub["names"][0]["name"]
+                    for n in sub["names"]:
+                        if n["lang"]=="es":
+                            name=n["name"]
+                            break
+                        if n["lang"]=="en":
+                            name=n["name"]
+                    paper["subjects"].append({"name":name,"id":sub["id"]})
+                break
         
+        authors=[]
+        for author in work["authors"]:
+            au_entry=author.copy()
+            if not "affiliations" in au_entry.keys():
+                au_entry["affiliations"]=[]
+            author_db=None
+            if "id" in author.keys():
+                if author["id"]=="":
+                    continue
+                author_db=self.colav_db["person"].find_one({"_id":author["id"]})
+            else:
+                continue
+            if author_db:
+                au_entry={
+                    "id":author_db["_id"],
+                    "full_name":author_db["full_name"],
+                    "external_ids":[ext for ext in author_db["external_ids"] if not ext["source"] in ["Cédula de Ciudadanía","Cédula de Extranjería","Passport"]]
+                }
+            affiliations=[]
+            aff_ids=[]
+            aff_types=[]
+            for aff in author["affiliations"]:
+                if "id" in aff.keys():
+                    if aff["id"]:
+                        aff_db=self.colav_db["affiliations"].find_one({"_id":aff["id"]})
+                        if aff_db:
+                            aff_ids.append(aff["id"])
+                            aff_entry={
+                                "id":aff_db["_id"],
+                                "name":""
+                            }
+                            if author_db:
+                                for aff_au in author_db["affiliations"]:
+                                    if aff_au["id"]==aff["id"]:
+                                        if "start_date" in aff_au.keys():
+                                            aff_entry["start_date"]=aff_au["start_date"]
+                                        if "end_date" in aff_au.keys():
+                                            aff_entry["end_date"]=aff_au["end_date"]
+                                        break
+                            name=aff_db["names"][0]["name"]
+                            lang=""
+                            for n in aff_db["names"]:
+                                if "lang" in n.keys():
+                                    if n["lang"]=="es":
+                                        name=n["name"]
+                                        lang=n["lang"]
+                                        break
+                                    elif n["lang"]=="en":
+                                        name=n["name"]
+                                        lang=n["lang"]
+                            del(aff["names"])
+                            aff["name"]=name
+                            if "types" in aff.keys():
+                                for typ in aff["types"]:
+                                    if "type" in typ.keys():
+                                        if not typ["type"] in aff_types:
+                                            aff_types.append(typ["type"])
+                            affiliations.append(aff)
+            if author_db:
+                for aff in author_db["affiliations"]:
+                    if aff["id"] in aff_ids:
+                        continue
+                    if aff["id"]:
+                        aff_db=self.colav_db["affiliations"].find_one({"_id":aff["id"]})
+                        inst_already=False
+                        if aff_db:
+                            if "types" in aff_db.keys():
+                                for typ in aff_db["types"]:
+                                    if "type" in typ.keys():
+                                        if typ["type"] in aff_types:
+                                            inst_already=True
+                            if inst_already:
+                                continue
+                            aff_ids.append(aff["id"])
+                            aff_entry={
+                                "id":aff_db["_id"],
+                                "name":""
+                            }
+                            name=aff_db["names"][0]["name"]
+                            lang=""
+                            for n in aff_db["names"]:
+                                if "lang" in n.keys():
+                                    if n["lang"]=="es":
+                                        name=n["name"]
+                                        lang=n["lang"]
+                                        break
+                                    elif n["lang"]=="en":
+                                        name=n["name"]
+                                        lang=n["lang"]
+                            aff["name"]=name
+                            affiliations.append(aff)
+            au_entry["affiliations"]=affiliations
+            authors.append(au_entry)
+        paper["authors"]=authors
+
+        return paper
         
-    def get_research_products(self,idx,typ=None,start_year=None,end_year=None,page=None,max_results=None,sort=None):
+    def get_research_products(self,idx,typ=None,start_year=None,end_year=None,page=None,max_results=None,sort=None,direction="descending"):
         papers=[]
         total=0
         open_access=[]
@@ -110,12 +246,9 @@ class AffiliationApp(HunabkuPluginBase):
             except:
                 print("Could not convert end year to int")
                 return None
-                
 
         search_dict={}
-
-        if idx:
-            search_dict={"authors.affiliations.id":ObjectId(idx)}     
+   
         if start_year or end_year:
             search_dict["year_published"]={}
         if start_year:
@@ -124,173 +257,91 @@ class AffiliationApp(HunabkuPluginBase):
             search_dict["year_published"]["$lte"]=end_year
         if typ:
             if typ!="institution":
-                search_dict["types.type"]=typ
-        
-        cursor=self.colav_db["works"].find(search_dict)
-        total=self.colav_db["works"].count_documents(search_dict)
+                work_ids = []
+                for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)}):
+                    author_search_dict=search_dict.copy()
+                    author_search_dict["authors.id"]=author["_id"]
+                    for work in self.colav_db["works"].find(author_search_dict):
+                        if work["_id"] not in work_ids:
+                            papers.append(self.process_work(work))
+                            work_ids.append(work["_id"])
+                total=len(work_ids)
 
-        if not page:
-            page=1
-        else:
-            try:
-                page=int(page)
-            except:
-                print("Could not convert end page to int")
-                return None
-        if not max_results:
-            max_results=100
-        else:
-            try:
-                max_results=int(max_results)
-            except:
-                print("Could not convert end max to int")
-                return None
-        if max_results>250:
-            max_results=250
-        
-        if sort=="citations" and direction=="ascending":
-            cursor.sort([("citations_count.count",ASCENDING)])
-        if sort=="citations" and direction=="descending":
-            cursor.sort([("citations_count.count",DESCENDING)])
-        if sort=="year" and direction=="ascending":
-            cursor.sort([("year_published",ASCENDING)])
-        if sort=="year" and direction=="descending":
-            cursor.sort([("year_published",DESCENDING)])
+                sorted_papers=[]
+                if sort=="citations" and direction=="ascending":
+                    sorted_papers=sorted(papers,key=lambda x: x["citations_count"][0]["count"])
+                elif sort=="citations" and direction=="descending":
+                    sorted_papers=sorted(papers,key=lambda x: x["citations_count"][0]["count"],reverse=True)
+                elif sort=="year" and direction=="ascending":
+                    sorted_papers=sorted(papers,key=lambda x: x["year_published"])
+                elif sort=="year" and direction=="descending":
+                    sorted_papers=sorted(papers,key=lambda x: x["year_published"],reverse=True)
+                else:
+                    sorted_papers=sorted(papers,key=lambda x: x["citations_count"]["count"])
 
-        cursor=cursor.skip(max_results*(page-1)).limit(max_results)
-        if cursor:
-            for paper in cursor:
-                entry={
-                    "id":paper["_id"],
-                    "title":paper["titles"][0]["title"],
-                    "authors":[],
-                    "source":"",
-                    "open_access_status":paper["bibliographic_info"]["open_access_status"] if "open_access_status" in paper["bibliographic_info"] else "",
-                    "year_published":paper["year_published"],
-                    "citations_count":paper["citations_count"] if "citations_count" in paper.keys() else 0,
-                    "subjects":[]
-                }
+                if not page:
+                    page=1
+                else:
+                    try:
+                        page=int(page)
+                    except:
+                        print("Could not convert end page to int")
+                        return None
+                if not max_results:
+                    max_results=100
+                else:
+                    try:
+                        max_results=int(max_results)
+                    except:
+                        print("Could not convert end max to int")
+                        return None
+                if max_results>250:
+                    max_results=250
 
-                for subs in paper["subjects"]:
-                    if subs["source"]=="openalex":
-                        for sub in subs["subjects"]:
-                            name=sub["names"][0]["name"]
-                            for n in sub["names"]:
-                                if n["lang"]=="es":
-                                    name=n["name"]
-                                    break
-                                if n["lang"]=="en":
-                                    name=n["name"]
-                            entry["subjects"].append({"name":name,"id":sub["id"]})
-                        break
+                papers=sorted_papers[max_results*(page-1):max_results*page]
 
-                if "source" in paper.keys():
-                    if "id" in paper["source"].keys():
-                        if "name" in paper["source"].keys():
-                            entry["source"]={"name":paper["source"]["name"],"id":paper["source"]["id"]}
-                        elif "names" in paper["source"].keys():
-                            entry["source"]={"name":paper["source"]["names"][0]["name"],"id":paper["source"]["id"]}
+            elif typ=="institution":
+                if idx:
+                    search_dict={"authors.affiliations.id":ObjectId(idx)}  
+                search_dict["types.type"]={"$nin":["department","faculty","group"]}
+                total=self.colav_db["works"].count_documents(search_dict)
+                cursor = self.colav_db["works"].find(search_dict)
+                if not page:
+                    page=1
+                else:
+                    try:
+                        page=int(page)
+                    except:
+                        print("Could not convert end page to int")
+                        return None
+                if not max_results:
+                    max_results=100
+                else:
+                    try:
+                        max_results=int(max_results)
+                    except:
+                        print("Could not convert end max to int")
+                        return None
+                if max_results>250:
+                    max_results=250
                 
-                authors=[]
-                for author in paper["authors"]:
-                    au_entry=author.copy()
-                    if not "affiliations" in au_entry.keys():
-                        au_entry["affiliations"]=[]
-                    author_db=None
-                    if "id" in author.keys():
-                        if author["id"]=="":
-                            continue
-                        author_db=self.colav_db["person"].find_one({"_id":author["id"]})
-                    else:
-                        continue
-                    if author_db:
-                        au_entry={
-                            "id":author_db["_id"],
-                            "full_name":author_db["full_name"],
-                            "external_ids":[ext for ext in author_db["external_ids"] if not ext["source"] in ["Cédula de Ciudadanía","Cédula de Extranjería","Passport"]]
-                        }
-                    affiliations=[]
-                    aff_ids=[]
-                    aff_types=[]
-                    for aff in author["affiliations"]:
-                        if "id" in aff.keys():
-                            if aff["id"]:
-                                aff_db=self.colav_db["affiliations"].find_one({"_id":aff["id"]})
-                                if aff_db:
-                                    aff_ids.append(aff["id"])
-                                    aff_entry={
-                                        "id":aff_db["_id"],
-                                        "name":""
-                                    }
-                                    if author_db:
-                                        for aff_au in author_db["affiliations"]:
-                                            if aff_au["id"]==aff["id"]:
-                                                if "start_date" in aff_au.keys():
-                                                    aff_entry["start_date"]=aff_au["start_date"]
-                                                if "end_date" in aff_au.keys():
-                                                    aff_entry["end_date"]=aff_au["end_date"]
-                                                break
-                                    name=aff_db["names"][0]["name"]
-                                    lang=""
-                                    for n in aff_db["names"]:
-                                        if "lang" in n.keys():
-                                            if n["lang"]=="es":
-                                                name=n["name"]
-                                                lang=n["lang"]
-                                                break
-                                            elif n["lang"]=="en":
-                                                name=n["name"]
-                                                lang=n["lang"]
-                                    del(aff["names"])
-                                    aff["name"]=name
-                                    if "types" in aff.keys():
-                                        for typ in aff["types"]:
-                                            if "type" in typ.keys():
-                                                if not typ["type"] in aff_types:
-                                                    aff_types.append(typ["type"])
-                                    affiliations.append(aff)
-                    if author_db:
-                        for aff in author_db["affiliations"]:
-                            if aff["id"] in aff_ids:
-                                continue
-                            if aff["id"]:
-                                aff_db=self.colav_db["affiliations"].find_one({"_id":aff["id"]})
-                                inst_already=False
-                                if aff_db:
-                                    if "types" in aff_db.keys():
-                                        for typ in aff_db["types"]:
-                                            if "type" in typ.keys():
-                                                if typ["type"] in aff_types:
-                                                    inst_already=True
-                                    if inst_already:
-                                        continue
-                                    aff_ids.append(aff["id"])
-                                    aff_entry={
-                                        "id":aff_db["_id"],
-                                        "name":""
-                                    }
-                                    name=aff_db["names"][0]["name"]
-                                    lang=""
-                                    for n in aff_db["names"]:
-                                        if "lang" in n.keys():
-                                            if n["lang"]=="es":
-                                                name=n["name"]
-                                                lang=n["lang"]
-                                                break
-                                            elif n["lang"]=="en":
-                                                name=n["name"]
-                                                lang=n["lang"]
-                                    aff["name"]=name
-                                    affiliations.append(aff)
-                    au_entry["affiliations"]=affiliations
-                    authors.append(au_entry)
-                entry["authors"]=authors
-                papers.append(entry)
-        return {"data":papers,
+                if sort=="citations" and direction=="ascending":
+                    cursor.sort([("citations_count.count",ASCENDING)])
+                if sort=="citations" and direction=="descending":
+                    cursor.sort([("citations_count.count",DESCENDING)])
+                if sort=="year" and direction=="ascending":
+                    cursor.sort([("year_published",ASCENDING)])
+                if sort=="year" and direction=="descending":
+                    cursor.sort([("year_published",DESCENDING)])
+
+                cursor=cursor.skip(max_results*(page-1)).limit(max_results)
+                for work in cursor:
+                    papers.append(self.process_work(work))
+
+            return {"data":papers,
                     "count":len(papers),
                     "page":page,
-                    "total_results":total
-                }
+                    "total_results":total}
 
     def get_products_by_year_by_type(self,idx,typ=None):
         data = []
@@ -1192,7 +1243,7 @@ class AffiliationApp(HunabkuPluginBase):
                     idx = self.request.args.get('id')
                     typ = self.request.args.get('type')
                     start_year = self.request.args.get('start_year')
-                    endt_year = self.request.args.get('end_year')
+                    end_year = self.request.args.get('end_year')
                     page = self.request.args.get('page')
                     max_results = self.request.args.get('max_results')
                     sort = self.request.args.get('sort')
@@ -1200,7 +1251,7 @@ class AffiliationApp(HunabkuPluginBase):
                         idx=idx,
                         typ=typ,
                         start_year=start_year,
-                        end_year=endt_year,
+                        end_year=end_year,
                         page=page,
                         max_results=max_results,
                         sort=sort
