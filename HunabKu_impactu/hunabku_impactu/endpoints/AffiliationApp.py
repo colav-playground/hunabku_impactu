@@ -245,83 +245,91 @@ class AffiliationApp(HunabkuPluginBase):
                 print("Could not convert end year to int")
                 return None
 
-        search_dict={}
-   
-        if start_year or end_year:
-            search_dict["year_published"]={}
-        if start_year:
-            search_dict["year_published"]["$gte"]=start_year
-        if end_year:
-            search_dict["year_published"]["$lte"]=end_year
+        if not page:
+            page=1
+        else:
+            try:
+                page=int(page)
+            except:
+                print("Could not convert end page to int")
+                return None
+        if not max_results:
+            max_results=100
+        else:
+            try:
+                max_results=int(max_results)
+            except:
+                print("Could not convert option max to int")
+                return None
+        if max_results>250:
+            max_results=250
+
         if typ:
             if typ!="institution":
                 work_ids = []
-                for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)}):
-                    author_search_dict=search_dict.copy()
-                    author_search_dict["authors.id"]=author["_id"]
-                    for work in self.colav_db["works"].find(author_search_dict):
-                        if work["_id"] not in work_ids:
-                            papers.append(self.process_work(work))
-                            work_ids.append(work["_id"])
+                match_works={}
+                if start_year or end_year:
+                    match_works["works.year_published"]={}
+                if start_year:
+                    match_works["works.year_published"]["$gte"]=start_year
+                if end_year:
+                    match_works["works.year_published"]["$lte"]=end_year
+                search_pipeline=[
+                    {"$match":{"affiliations.id":ObjectId(idx)}},
+                    {"$project":{"affiliations":1,"full_name":1,"_id":1}},
+                    {"$lookup":{"from":"works","localField":"_id","foreignField":"authors.id","as":"works"}},
+                    {"$unwind":"$works"},
+                    {"$match":match_works},
+                    {"$project":{
+                        "works._id":1,
+                        "works.citations_count":1,
+                        "works.year_published":1,
+                        "works.titles":1,
+                        "works.source":1,
+                        "works.authors":1,
+                        "works.subjects":1,
+                        "works.bibliographic_info":1,
+                    }}
+                ]
+
+                if sort=="citations" and direction=="ascending":
+                    search_pipeline.append({"$sort":{"works.citations_count.count":ASCENDING}})
+                elif sort=="citations" and direction=="descending":
+                    search_pipeline.append({"$sort":{"works.citations_count.count":DESCENDING}})
+                elif sort=="year" and direction=="ascending":
+                    search_pipeline.append({"$sort":{"works.year_published":ASCENDING}})
+                elif sort=="year" and direction=="descending":
+                    search_pipeline.append({"$sort":{"works.year_published":DESCENDING}})
+                elif not sort:
+                    search_pipeline.append({"$sort":{"works.citations_count.count":DESCENDING}})
+                
+                search_pipeline.append({"$skip":max_results*(page-1)})
+                search_pipeline.append({"$limit":max_results})
+
+                for work in self.colav_db["person"].aggregate(search_pipeline):
+                    w=work["works"]
+                    for author in w["authors"]:
+                        if author["id"]==work["_id"]:
+                            w["authors"]=[author]
+                            break
+                    if w["_id"] not in work_ids:
+                        papers.append(self.process_work(w))
+                        work_ids.append(w["_id"])
                 total=len(work_ids)
 
-                sorted_papers=[]
-                if sort=="citations" and direction=="ascending":
-                    sorted_papers=sorted(papers,key=lambda x: x["citations_count"][0]["count"])
-                elif sort=="citations" and direction=="descending":
-                    sorted_papers=sorted(papers,key=lambda x: x["citations_count"][0]["count"],reverse=True)
-                elif sort=="year" and direction=="ascending":
-                    sorted_papers=sorted(papers,key=lambda x: x["year_published"])
-                elif sort=="year" and direction=="descending":
-                    sorted_papers=sorted(papers,key=lambda x: x["year_published"],reverse=True)
-                else:
-                    sorted_papers=sorted(papers,key=lambda x: x["citations_count"]["count"])
-
-                if not page:
-                    page=1
-                else:
-                    try:
-                        page=int(page)
-                    except:
-                        print("Could not convert end page to int")
-                        return None
-                if not max_results:
-                    max_results=100
-                else:
-                    try:
-                        max_results=int(max_results)
-                    except:
-                        print("Could not convert end max to int")
-                        return None
-                if max_results>250:
-                    max_results=250
-
-                papers=sorted_papers[max_results*(page-1):max_results*page]
-
             elif typ=="institution":
+                search_dict={}
+                if start_year or end_year:
+                    search_dict["year_published"]={}
+                if start_year:
+                    search_dict["year_published"]["$gte"]=start_year
+                if end_year:
+                    search_dict["year_published"]["$lte"]=end_year
                 if idx:
                     search_dict={"authors.affiliations.id":ObjectId(idx)}  
                 search_dict["types.type"]={"$nin":["department","faculty","group"]}
                 total=self.colav_db["works"].count_documents(search_dict)
                 cursor = self.colav_db["works"].find(search_dict)
-                if not page:
-                    page=1
-                else:
-                    try:
-                        page=int(page)
-                    except:
-                        print("Could not convert end page to int")
-                        return None
-                if not max_results:
-                    max_results=100
-                else:
-                    try:
-                        max_results=int(max_results)
-                    except:
-                        print("Could not convert end max to int")
-                        return None
-                if max_results>250:
-                    max_results=250
                 
                 if sort=="citations" and direction=="ascending":
                     cursor.sort([("citations_count.count",ASCENDING)])
@@ -340,6 +348,8 @@ class AffiliationApp(HunabkuPluginBase):
                     "count":len(papers),
                     "page":page,
                     "total_results":total}
+        else:
+            return None
 
     def get_products_by_year_by_type(self,idx,typ=None):
         data = []

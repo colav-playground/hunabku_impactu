@@ -81,7 +81,7 @@ class PersonApp(HunabkuPluginBase):
         else:
             return None
     
-    def get_research_products(self,idx,typ=None,start_year=None,end_year=None,page=None,max_results=None,sort=None):
+    def get_research_products(self,idx,typ=None,start_year=None,end_year=None,page=None,max_results=None,sort=None,direction="descending"):
         papers=[]
         total=0
         open_access=[]
@@ -143,6 +143,8 @@ class PersonApp(HunabkuPluginBase):
             cursor.sort([("year_published",ASCENDING)])
         if sort=="year" and direction=="descending":
             cursor.sort([("year_published",DESCENDING)])
+        elif not sort:
+            cursor.sort([("citations_count.count",DESCENDING)])
 
         cursor=cursor.skip(max_results*(page-1)).limit(max_results)
         if cursor:
