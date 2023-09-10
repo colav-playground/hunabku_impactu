@@ -308,9 +308,9 @@ class AffiliationApp(HunabkuPluginBase):
 
                 for work in self.colav_db["person"].aggregate(search_pipeline):
                     w=work["works"]
-                    for author in w["authors"]:
+                    for i,author in enumerate(w["authors"]):
                         if author["id"]==work["_id"]:
-                            w["authors"]=[author]
+                            w["authors"][i]=author
                             break
                     if w["_id"] not in work_ids:
                         papers.append(self.process_work(w))
