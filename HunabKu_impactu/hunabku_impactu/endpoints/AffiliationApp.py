@@ -302,6 +302,10 @@ class AffiliationApp(HunabkuPluginBase):
                     search_pipeline.append({"$sort":{"works.year_published":DESCENDING}})
                 elif not sort:
                     search_pipeline.append({"$sort":{"works.citations_count.count":DESCENDING}})
+
+                total_pipeline = search_pipeline.copy()
+                total_pipeline.append({"$count":"total"})
+                total=list(self.colav_db["person"].aggregate(total_pipeline))[0]["total"]
                 
                 search_pipeline.append({"$skip":max_results*(page-1)})
                 search_pipeline.append({"$limit":max_results})
@@ -312,10 +316,15 @@ class AffiliationApp(HunabkuPluginBase):
                         if author["id"]==work["_id"]:
                             w["authors"][i]=author
                             break
+                    if len(w["authors"])>=10:
+                        if i>=10:
+                            w["authors"]=w["authors"][i-10:i]
+                        else:
+                            w["authors"]=w["authors"][0:10]
                     if w["_id"] not in work_ids:
                         papers.append(self.process_work(w))
                         work_ids.append(w["_id"])
-                total=len(work_ids)
+                
 
             elif typ=="institution":
                 search_dict={}
