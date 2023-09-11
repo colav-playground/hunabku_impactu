@@ -318,7 +318,7 @@ class AffiliationApp(HunabkuPluginBase):
                             break
                     if len(w["authors"])>=10:
                         if i>=10:
-                            w["authors"]=w["authors"][i-10:i]
+                            w["authors"]=w["authors"][i-9:i+1]
                         else:
                             w["authors"]=w["authors"][0:10]
                     if w["_id"] not in work_ids:
