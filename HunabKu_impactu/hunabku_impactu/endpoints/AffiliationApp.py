@@ -125,7 +125,7 @@ class AffiliationApp(HunabkuPluginBase):
         elif typ=="group":
             data={"authors":[]}
             for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"full_name":1}):
-                data["authors"].append({"id":author["_id"],"full_name":autho["full_name"]})
+                data["authors"].append({"id":author["_id"],"full_name":author["full_name"]})
 
         return data
 
