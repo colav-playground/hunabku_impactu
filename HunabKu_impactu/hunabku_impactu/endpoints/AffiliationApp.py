@@ -74,21 +74,58 @@ class AffiliationApp(HunabkuPluginBase):
         else:
             return None
 
-    def get_affiliations(self,idx):
-        data={"departments":[],"faculties":[],"groups":[]}
-
-        for aff in self.colav_db['affiliations'].find({"relations.id":ObjectId(idx)},{"types":1,"names":1}):
-            if aff["types"]:
-                for typ in aff["types"]:
-                    if typ["type"]=="group":
-                        data["groups"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
-                        break
-                    elif typ["type"]=="department":
-                        data["departments"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
-                        break
-                    elif typ["type"]=="faculty":
-                        data["faculties"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
-                        break
+    def get_affiliations(self,idx,typ=None):
+        if typ not in ["group","faculty","department"]:
+            data={"departments":[],"faculties":[],"groups":[],"authors":[]}
+            for aff in self.colav_db['affiliations'].find({"relations.id":ObjectId(idx)},{"types":1,"names":1}):
+                if aff["types"]:
+                    for types in aff["types"]:
+                        #There is no actual relationship between groups and institutions
+                        if types["type"]=="group":
+                            data["groups"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
+                            break
+                        elif types["type"]=="department":
+                            data["departments"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
+                            break
+                        elif types["type"]=="faculty":
+                            data["faculties"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
+                            break
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"full_name":1}):
+                data["authors"].append({"id":author["_id"],"full_name":author["full_name"]})
+        elif typ=="faculty":
+            data={"groups":[],"departments":[],"authors":[]}
+            aff_ids=[]
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"full_name":1,"affiliations":1}):
+                data["authors"].append({"full_name":author["full_name"],"id":author["_id"]})
+                for aff in author["affiliations"]:
+                    if aff["id"] in aff_ids:
+                        continue
+                    for types in aff["types"]:
+                        if types["type"]=="department":
+                            data["departments"].append({"id":aff["id"],"name":aff["name"]})
+                            aff_ids.append(aff["id"])
+                            break
+                        if types["type"]=="group":
+                            data["groups"].append({"id":aff["id"],"name":aff["name"]})
+                            aff_ids.append(aff["id"])
+                            break
+        elif typ=="department":
+            data={"groups":[],"authors":[]}
+            aff_ids=[]
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"full_name":1,"affiliations":1}):
+                data["authors"].append({"full_name":author["full_name"],"id":author["_id"]})
+                for aff in author["affiliations"]:
+                    if aff["id"] in aff_ids:
+                        continue
+                    for types in aff["types"]:
+                        if types["type"]=="group":
+                            data["groups"].append({"id":aff["id"],"name":aff["name"]})
+                            aff_ids.append(aff["id"])
+                            break
+        elif typ=="group":
+            data={"authors":[]}
+            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"full_name":1}):
+                data["authors"].append({"id":author["_id"],"full_name":autho["full_name"]})
 
         return data
 
@@ -1175,7 +1212,7 @@ class AffiliationApp(HunabkuPluginBase):
         if section=="info":
             result = self.get_info(idx)
         elif section=="affiliations":
-            result = self.get_affiliations(idx)
+            result = self.get_affiliations(idx,typ=typ)
         elif section=="research":
             if tab=="products":
                 plot=self.request.args.get("plot")
