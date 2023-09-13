@@ -106,7 +106,8 @@ class AffiliationApi(HunabkuPluginBase):
                         "licenses":source["licenses"],
                         "apc":source["apc"],
                         "waiver":source["waiver"],
-                        "addresses":source["addresses"]
+                        "addresses":source["addresses"],
+                        "publisher":source["publisher"]
                     }
                 else:
                     entry["source"]={}
