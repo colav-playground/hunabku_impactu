@@ -76,7 +76,7 @@ class AffiliationApp(HunabkuPluginBase):
 
     def get_affiliations(self,idx,typ=None):
         if typ not in ["group","faculty","department"]:
-            data={"departments":[],"faculties":[],"groups":[],"authors":[]}
+            data={"departments":[],"faculties":[],"groups":[]}
             for aff in self.colav_db['affiliations'].find({"relations.id":ObjectId(idx)},{"types":1,"names":1}):
                 if aff["types"]:
                     for types in aff["types"]:
@@ -90,8 +90,6 @@ class AffiliationApp(HunabkuPluginBase):
                         elif types["type"]=="faculty":
                             data["faculties"].append({"id":aff["_id"],"name":aff["names"][0]["name"]})
                             break
-            for author in self.colav_db["person"].find({"affiliations.id":ObjectId(idx)},{"full_name":1}):
-                data["authors"].append({"id":author["_id"],"full_name":author["full_name"]})
         elif typ=="faculty":
             data={"groups":[],"departments":[],"authors":[]}
             aff_ids=[]
