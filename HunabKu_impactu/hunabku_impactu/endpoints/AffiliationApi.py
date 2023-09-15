@@ -254,7 +254,6 @@ class AffiliationApi(HunabkuPluginBase):
                     result=None
                 else:
                     idx = self.request.args.get('id')
-                    typ = self.request.args.get('type')
                     start_year = self.request.args.get('start_year')
                     end_year = self.request.args.get('end_year')
                     page = self.request.args.get('page')
@@ -262,7 +261,6 @@ class AffiliationApi(HunabkuPluginBase):
                     sort = self.request.args.get('sort')
                     result = self.get_production(
                         idx=idx,
-                        typ=typ,
                         start_year=start_year,
                         end_year=end_year,
                         page=page,
