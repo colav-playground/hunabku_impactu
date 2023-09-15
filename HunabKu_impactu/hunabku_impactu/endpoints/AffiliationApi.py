@@ -238,12 +238,15 @@ class AffiliationApi(HunabkuPluginBase):
 
     @endpoint('/api/affiliation', methods=['GET'])
     def api_affiliation(self):
-        
         section = self.request.args.get('section')
+        tab = self.request.args.get('tab')
+        data = self.request.args.get('data')
+        idx = self.request.args.get('id')
+        typ = self.request.args.get('type')
+        
+        result = None
         if section=="info":
             result = self.get_info(idx)
-        elif section=="affiliations":
-            result = self.get_affiliations(idx,typ=typ)
         elif section=="research":
             if tab=="products":
                 plot=self.request.args.get("plot")
