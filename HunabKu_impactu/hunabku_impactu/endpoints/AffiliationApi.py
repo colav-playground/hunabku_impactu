@@ -238,27 +238,34 @@ class AffiliationApi(HunabkuPluginBase):
 
     @endpoint('/api/affiliation', methods=['GET'])
     def api_affiliation(self):
-        data = self.request.args.get('data')
-
-        if data=="info":
-            idx = self.request.args.get('id')
+        
+        section = self.request.args.get('section')
+        if section=="info":
             result = self.get_info(idx)
-        elif data=="production":
-            idx = self.request.args.get('id')
-            max_results=self.request.args.get('max')
-            page=self.request.args.get('page')
-            start_year=self.request.args.get('start_year')
-            end_year=self.request.args.get('end_year')
-            sort=self.request.args.get('sort')
-            result=self.get_production(
-                idx=idx,
-                max_results=max_results,
-                page=page,
-                start_year=start_year,
-                end_year=end_year,
-                sort=sort,
-                direction="ascending"
-            )
+        elif section=="affiliations":
+            result = self.get_affiliations(idx,typ=typ)
+        elif section=="research":
+            if tab=="products":
+                plot=self.request.args.get("plot")
+                if plot:
+                    result=None
+                else:
+                    idx = self.request.args.get('id')
+                    typ = self.request.args.get('type')
+                    start_year = self.request.args.get('start_year')
+                    end_year = self.request.args.get('end_year')
+                    page = self.request.args.get('page')
+                    max_results = self.request.args.get('max_results')
+                    sort = self.request.args.get('sort')
+                    result = self.get_production(
+                        idx=idx,
+                        typ=typ,
+                        start_year=start_year,
+                        end_year=end_year,
+                        page=page,
+                        max_results=max_results,
+                        sort=sort
+                    )
         else:
             result=None
 
