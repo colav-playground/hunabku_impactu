@@ -219,6 +219,7 @@ class AffiliationApi(HunabkuPluginBase):
                                                 name=n["name"]
                                                 lang=n["lang"]
                                     aff["name"]=name
+                                    aff["addresses"] = aff_db["addresses"]
                                     affiliations.append(aff)
                     au_entry["affiliations"]=affiliations
                     authors.append(au_entry)
