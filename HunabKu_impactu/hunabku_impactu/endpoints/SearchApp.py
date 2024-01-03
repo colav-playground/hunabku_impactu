@@ -336,13 +336,7 @@ class SearchApp(HunabkuPluginBase):
                 for subs in paper["subjects"]:
                     if subs["source"]=="openalex":
                         for sub in subs["subjects"]:
-                            name=sub["names"][0]["name"]
-                            for n in sub["names"]:
-                                if n["lang"]=="es":
-                                    name=n["name"]
-                                    break
-                                if n["lang"]=="en":
-                                    name=n["name"]
+                            name=sub["name"]
                             entry["subjects"].append({"name":name,"id":sub["id"]})
                         break
 
@@ -403,7 +397,6 @@ class SearchApp(HunabkuPluginBase):
                                             elif n["lang"]=="en":
                                                 name=n["name"]
                                                 lang=n["lang"]
-                                    del(aff["names"])
                                     aff["name"]=name
                                     if "types" in aff.keys():
                                         for typ in aff["types"]:
