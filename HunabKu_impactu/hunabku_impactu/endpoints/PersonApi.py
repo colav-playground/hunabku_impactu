@@ -84,14 +84,8 @@ class PersonApi(HunabkuPluginBase):
                     if subject["source"]=="openalex":
                         sub_entry["subjects"]=[]
                         for sub in subject["subjects"]:
-                            name=None
-                            lang=None
-                            for n in sub["names"]:
-                                if n["lang"]=="en":
-                                    name=n["name"]
-                                    lang=n["lang"]
-                                    break    
-                            sub["names"]=[{"name":name,"lang":lang}]
+                            name = sub.get("name", "No name specified in DB")
+                            sub["names"]=[{"name":name}]
                             sub_entry["subjects"].append(sub)
                     subjects.append(sub_entry)
                 source=None

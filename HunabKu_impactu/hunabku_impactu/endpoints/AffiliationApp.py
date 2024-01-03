@@ -155,13 +155,7 @@ class AffiliationApp(HunabkuPluginBase):
         for subs in work["subjects"]:
             if subs["source"]=="openalex":
                 for sub in subs["subjects"]:
-                    name=sub["names"][0]["name"]
-                    for n in sub["names"]:
-                        if n["lang"]=="es":
-                            name=n["name"]
-                            break
-                        if n["lang"]=="en":
-                            name=n["name"]
+                    name = sub.get("name", "No name specified in DB")
                     paper["subjects"].append({"name":name,"id":sub["id"]})
                 break
         
@@ -215,7 +209,6 @@ class AffiliationApp(HunabkuPluginBase):
                                     elif n["lang"]=="en":
                                         name=n["name"]
                                         lang=n["lang"]
-                            del(aff["names"])
                             aff["name"]=name
                             if "types" in aff.keys():
                                 for typ in aff["types"]:
