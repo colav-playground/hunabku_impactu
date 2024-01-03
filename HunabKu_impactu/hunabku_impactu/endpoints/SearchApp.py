@@ -128,8 +128,8 @@ class SearchApp(HunabkuPluginBase):
         #                                 institution_filters.append(entry)
 
 
-        
-        cursor.sort([("score", { "$meta": "textScore" } )])
+        if keywords:
+            cursor.sort([("score", { "$meta": "textScore" } )])
 
 
         total=self.colav_db["person"].count_documents(search_dict)
