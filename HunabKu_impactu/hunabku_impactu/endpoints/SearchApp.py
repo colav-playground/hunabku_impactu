@@ -94,38 +94,38 @@ class SearchApp(HunabkuPluginBase):
 
         if keywords:
             search_dict["$text"]={"$search":keywords}
-            filter_cursor=self.colav_db['person'].find({"$text":{"$search":keywords},"external_ids":{"$ne":[]}},{ "score": { "$meta": "textScore" } }).sort([("score", { "$meta": "textScore" } )])
-        else:
-            filter_cursor=self.colav_db['person'].find({"external_ids":{"$ne":[]}})
+        #     filter_cursor=self.colav_db['person'].find({"$text":{"$search":keywords},"external_ids":{"$ne":[]}},{ "score": { "$meta": "textScore" } }).sort([("score", { "$meta": "textScore" } )])
+        # else:
+        #     filter_cursor=self.colav_db['person'].find({"external_ids":{"$ne":[]}})
 
         if keywords:
             var_dict["score"]={"$meta":"textScore"}
 
         cursor=self.colav_db['person'].find(search_dict,var_dict)
 
-        institution_filters = []
-        group_filters=[]
-        institution_ids=[]
-        groups_ids=[]
+        # institution_filters = []
+        # group_filters=[]
+        # institution_ids=[]
+        # groups_ids=[]
 
-        for author in filter_cursor:
-            if "affiliations" in author.keys():
-                if len(author["affiliations"])>0:
-                    for aff in author["affiliations"]:
-                        if "types" in aff.keys():
-                            for typ in aff["types"]: 
-                                if typ["type"]=="group":
-                                    if not str(aff["id"]) in groups_ids:
-                                        groups_ids.append(str(aff["id"]))
-                                        group_filters.append({
-                                            "id":str(aff["id"]),
-                                            "name":aff["name"]
-                                        })
-                                else:
-                                    if not str(aff["id"]) in institution_ids:
-                                        institution_ids.append(str(aff["id"]))
-                                        entry = {"id":str(aff["id"]),"name":aff["name"]}
-                                        institution_filters.append(entry)
+        # for author in filter_cursor:
+        #     if "affiliations" in author.keys():
+        #         if len(author["affiliations"])>0:
+        #             for aff in author["affiliations"]:
+        #                 if "types" in aff.keys():
+        #                     for typ in aff["types"]: 
+        #                         if typ["type"]=="group":
+        #                             if not str(aff["id"]) in groups_ids:
+        #                                 groups_ids.append(str(aff["id"]))
+        #                                 group_filters.append({
+        #                                     "id":str(aff["id"]),
+        #                                     "name":aff["name"]
+        #                                 })
+        #                         else:
+        #                             if not str(aff["id"]) in institution_ids:
+        #                                 institution_ids.append(str(aff["id"]))
+        #                                 entry = {"id":str(aff["id"]),"name":aff["name"]}
+        #                                 institution_filters.append(entry)
 
 
         
@@ -158,7 +158,8 @@ class SearchApp(HunabkuPluginBase):
             group_name = ""
             group_id = ""
             for author in cursor:
-                del(author["score"])
+                if "score" in author:
+                    del author["score"]
                 ext_ids=[]
                 for ext in author["external_ids"]:
                     if ext["source"] in ["Cédula de Ciudadanía","Cédula de Extranjería","Passport"]:

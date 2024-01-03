@@ -82,9 +82,9 @@ class SearchApi(HunabkuPluginBase):
 
         if keywords:
             search_dict["$text"]={"$search":keywords} 
-            filter_cursor=self.colav_db['person'].find({"$text":{"$search":keywords},"external_ids":{"$ne":[]}},{ "score": { "$meta": "textScore" } }).sort([("score", { "$meta": "textScore" } )])
-        else:
-            filter_cursor=self.colav_db['person'].find({"external_ids":{"$ne":[]}})
+        #     filter_cursor=self.colav_db['person'].find({"$text":{"$search":keywords},"external_ids":{"$ne":[]}},{ "score": { "$meta": "textScore" } }).sort([("score", { "$meta": "textScore" } )])
+        # else:
+        #     filter_cursor=self.colav_db['person'].find({"external_ids":{"$ne":[]}})
 
         cursor=self.colav_db['person'].find(search_dict,{"score":{"$meta":"textScore"}})
 
@@ -93,28 +93,28 @@ class SearchApi(HunabkuPluginBase):
         institution_ids=[]
         groups_ids=[]
 
-        for author in filter_cursor:
-            if "affiliations" in author.keys():
-                if len(author["affiliations"])>0:
-                    for aff in author["affiliations"]:
-                        if "types" in aff.keys():
-                            for typ in aff["types"]: 
-                                if typ["type"]=="group":
-                                    if not str(aff["id"]) in groups_ids:
-                                        groups_ids.append(str(aff["id"]))
-                                        group_filters.append({
-                                            "id":str(aff["id"]),
-                                            "name":aff["name"]
-                                        })
-                                else:
-                                    if not str(aff["id"]) in institution_ids:
-                                        institution_ids.append(str(aff["id"]))
-                                        entry = {"id":str(aff["id"]),"name":aff["name"]}
-                                        institution_filters.append(entry)
+        # for author in filter_cursor:
+        #     if "affiliations" in author.keys():
+        #         if len(author["affiliations"])>0:
+        #             for aff in author["affiliations"]:
+        #                 if "types" in aff.keys():
+        #                     for typ in aff["types"]: 
+        #                         if typ["type"]=="group":
+        #                             if not str(aff["id"]) in groups_ids:
+        #                                 groups_ids.append(str(aff["id"]))
+        #                                 group_filters.append({
+        #                                     "id":str(aff["id"]),
+        #                                     "name":aff["name"]
+        #                                 })
+        #                         else:
+        #                             if not str(aff["id"]) in institution_ids:
+        #                                 institution_ids.append(str(aff["id"]))
+        #                                 entry = {"id":str(aff["id"]),"name":aff["name"]}
+        #                                 institution_filters.append(entry)
 
 
-        
-        cursor.sort([("score", { "$meta": "textScore" } )])
+        if keywords:
+            cursor.sort([("score", { "$meta": "textScore" } )])
 
 
         total=self.colav_db["person"].count_documents(search_dict)
