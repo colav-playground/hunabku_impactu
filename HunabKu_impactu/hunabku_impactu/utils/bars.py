@@ -45,9 +45,10 @@ class bars:
         result_list = []
         for year in result.keys():
             for typ in result[year].keys():
-                result_list.append({"x": year, "y": result[year][typ], "type": typ})
-        result_list = sorted(result_list, key=lambda x: x["x"])
-
+                result_list += (
+                    [{"x": year, "y": result[year][typ], "type": typ}] if year else []
+                )
+        result_list = sorted(result_list, key=lambda x: x.get("x", -99))
         return result_list
 
     def products_by_affiliation_by_type(self, data):
