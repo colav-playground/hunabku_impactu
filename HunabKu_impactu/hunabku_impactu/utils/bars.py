@@ -211,7 +211,7 @@ class bars:
         result = {}
         top5 = {}  # total
         for work in data:
-            year = int(work["year_published"])
+            year = int(work.get("year_published", 0) or 0)
             if year in result.keys():
                 if work["publisher"]["name"] not in result[year].keys():
                     result[year][work["publisher"]["name"]] = 1
