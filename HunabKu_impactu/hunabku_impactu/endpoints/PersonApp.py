@@ -377,7 +377,7 @@ class PersonApp(HunabkuPluginBase):
                 if source_db["apc"]:
                     data.append(
                         {
-                            "year_published": work["year_published"],
+                            "year_published": work["year_published"] or 2020,
                             "apc": source_db["apc"],
                         }
                     )
