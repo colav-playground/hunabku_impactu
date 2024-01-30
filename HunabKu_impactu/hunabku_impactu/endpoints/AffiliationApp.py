@@ -517,49 +517,43 @@ class AffiliationApp(HunabkuPluginBase):
             return {"plot": None}
 
     def get_products_by_affiliation_by_type(self, idx, typ):
-        affiliations = []
-        aff_ids = []
         if not typ in ["group", "department", "faculty"]:
             return None
-        for aff in self.colav_db["affiliations"].find(
-            {"relations.id": ObjectId(idx), "types.type": typ}
-        ):
-            name = aff["names"][0]["name"]
-            for n in aff["names"]:
-                if n["lang"] == "es":
-                    name = n["name"]
-                    break
-                if n["lang"] == "en":
-                    name = n["name"]
-            affiliations.append((aff["_id"], name))
-        data = {}
-        for aff_id, name in affiliations:
-            data[name] = []
-            for author in self.colav_db["person"].find({"affiliations.id": aff_id}):
-                aff_start_date = None
-                aff_end_date = None
-                for aff in author["affiliations"]:
-                    if aff["id"] == aff_id:
-                        aff_start_date = (
-                            aff["start_date"] if aff["start_date"] != -1 else 9999999999
-                        )
-                        aff_end_date = (
-                            aff["end_date"] if aff["end_date"] != -1 else 9999999999
-                        )
-                        break
-                query_dict = {
-                    "authors.id": author["_id"],
-                    "types": {"$ne": []},
-                    "$and": [
-                        {"date_published": {"$lte": aff_end_date}},
-                        {"date_published": {"$gte": aff_start_date}},
-                    ],
+        pipeline = [
+            {
+                "$match": {
+                    "affiliations.types.type": typ,
+                    "affiliations.id": ObjectId("65a9aa37e5b59075e52f6ec5"),
                 }
-
-                for work in self.colav_db["works"].find(query_dict, {"types": 1}):
-                    data[name].append(work)
+            },
+            {"$unwind": "$affiliations"},
+            {"$match": {"affiliations.types.type": typ}},
+            {"$project": {"authorIds": "$_id", "_id": 0, "affiliations": 1}},
+            {
+                "$lookup": {
+                    "from": "works",
+                    "localField": "authorIds",
+                    "foreignField": "authors.id",
+                    "as": "works",
+                }
+            },
+            {"$unwind": "$works"},
+            {"$match": {"works.types": {"$ne": []}}},
+            {
+                "$project": {
+                    "name": "$affiliations.name",
+                    "work": {"types": "$works.types"},
+                }
+            },
+        ]
+        data = {}
+        for _data in self.colav_db["person"].aggregate(pipeline):
+            if not data.get(_data["name"], False):
+                data[_data["name"]] = []
+            data[_data["name"]].append(_data["work"])
 
         return {"plot": self.bars.products_by_affiliation_by_type(data)}
+
 
     def get_citations_by_year(self, idx, typ=None):
         data = []
