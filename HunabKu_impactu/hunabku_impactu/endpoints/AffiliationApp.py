@@ -26,24 +26,80 @@ class AffiliationApp(HunabkuPluginBase):
         self.pies = pies()
         self.maps = maps()
 
-    def get_info(self, idx, start_year=None, end_year=None):
-        initial_year = 9999
-        final_year = 0
+    def get_info(self, idx, typ, start_year=None, end_year=None):
 
-        if start_year:
-            try:
-                start_year = int(start_year)
-            except:
-                print("Could not convert start year to int")
-                return None
-        if end_year:
-            try:
-                end_year = int(end_year)
-            except:
-                print("Could not convert end year to int")
-                return None
+        pipeline = [
+            {"$match": {"_id": ObjectId(idx)}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "names": 1,
+                    "citations": 1,
+                    "external_urls": 1,
+                    "relations": 1,
+                    "university": {
+                        "$arrayElemAt": [
+                            {
+                                "$filter": {
+                                    "input": "$relations",
+                                    "as": "rel",
+                                    "cond": {
+                                        "$and": [
+                                            {
+                                                "$in": [
+                                                    "education",
+                                                    {
+                                                        "$map": {
+                                                            "input": "$$rel.types",
+                                                            "as": "t",
+                                                            "in": {
+                                                                "$toLower": "$$t.type"
+                                                            },
+                                                        }
+                                                    },
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                }
+                            },
+                            0,
+                        ]
+                    },
+                    "faculty": {
+                        "$arrayElemAt": [
+                            {
+                                "$filter": {
+                                    "input": "$relations",
+                                    "as": "rel",
+                                    "cond": {
+                                        "$and": [
+                                            {
+                                                "$in": [
+                                                    "faculty",
+                                                    {
+                                                        "$map": {
+                                                            "input": "$$rel.types",
+                                                            "as": "t",
+                                                            "in": {
+                                                                "$toLower": "$$t.type"
+                                                            },
+                                                        }
+                                                    },
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                }
+                            },
+                            0,
+                        ]
+                    },
+                }
+            },
+        ]
 
-        affiliation = self.colav_db["affiliations"].find_one({"_id": ObjectId(idx)})
+        affiliation = next(self.colav_db["affiliations"].aggregate(pipeline), None)
         if affiliation:
             name = ""
             for n in affiliation["names"]:
@@ -70,36 +126,17 @@ class AffiliationApp(HunabkuPluginBase):
                 ],
                 "logo": logo,
             }
-            index_list = []
+            entry.update(
+                {"university": affiliation.get("university", None)}
+            ) if typ in ("department", "faculty", "group") else None
 
-            filters = {"years": {}}
-            for reg in (
-                self.colav_db["works"]
-                .find(
-                    {
-                        "authors.affiliations.id": ObjectId(idx),
-                        "year_published": {"$exists": 1},
-                    }
-                )
-                .sort([("year_published", ASCENDING)])
-                .limit(1)
-            ):
-                filters["years"]["start_year"] = reg["year_published"]
-            for reg in (
-                self.colav_db["works"]
-                .find(
-                    {
-                        "authors.affiliations.id": ObjectId(idx),
-                        "year_published": {"$exists": 1},
-                    }
-                )
-                .sort([("year_published", DESCENDING)])
-                .limit(1)
-            ):
-                filters["years"]["end_year"] = reg["year_published"]
-            filters["types"] = []
+            entry.update({"faculty": affiliation.get("faculty", None)}) if typ in (
+                "department",
+                "faculty",
+                "group",
+            ) else None
 
-            return {"data": entry, "filters": filters}
+            return {"data": entry}
         else:
             return None
 
@@ -1659,7 +1696,7 @@ class AffiliationApp(HunabkuPluginBase):
         result = None
 
         if section == "info":
-            result = self.get_info(idx)
+            result = self.get_info(idx, typ)
         elif section == "affiliations":
             result = self.get_affiliations(idx, typ=typ)
         elif section == "research":
