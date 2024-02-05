@@ -560,7 +560,7 @@ class AffiliationApp(HunabkuPluginBase):
             {
                 "$match": {
                     "affiliations.types.type": typ,
-                    "affiliations.id": ObjectId("65a9aa37e5b59075e52f6ec5"),
+                    "affiliations.id": ObjectId(idx),
                 }
             },
             {"$unwind": "$affiliations"},
