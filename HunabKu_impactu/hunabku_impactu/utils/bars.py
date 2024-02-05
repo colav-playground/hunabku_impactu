@@ -35,8 +35,7 @@ class bars:
                 if year not in result.keys():
                     result[year] = {}
                 for typ in work["types"]:
-                    if typ["source"] == "scienti":
-                        # if typ["level"]==2:
+                    if typ["source"] == "scienti" and typ["type"].lower() != 'artículo':
                         if typ["type"] not in result[year].keys():
                             result[year][typ["type"]] = 1
                         else:
