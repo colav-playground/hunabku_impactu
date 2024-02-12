@@ -1770,7 +1770,7 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot == "products_publisher":
                         result = self.get_products_by_publisher(idx, typ=typ)
                     elif plot == "products_subject":
-                        level = int(self.request.args.get("level"))
+                        level = int(self.request.args.get("level", 0))
                         if not level:
                             level = 0
                         result = self.get_products_by_subject(idx, typ=typ, level=level)
