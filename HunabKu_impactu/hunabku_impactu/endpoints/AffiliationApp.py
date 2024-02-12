@@ -701,20 +701,20 @@ class AffiliationApp(HunabkuPluginBase):
                 for work in self.colav_db["works"].find(
                     {
                         "authors.id": author["_id"],
-                        "year_published": {"$exists": 1},
-                        "bibliographic_info.is_open_acess": {"$exists": 1},
+                        "bibliographic_info.is_open_access": {"$ne": None},
+                        "year_published": {"$ne": None},
                     },
-                    {"year_published": 1, "bibliographic_info.is_open_acess": 1},
+                    {"year_published": 1, "bibliographic_info.is_open_access": 1},
                 ):
                     data.append(work)
         else:
             for work in self.colav_db["works"].find(
                 {
                     "authors.affiliations.id": ObjectId(idx),
-                    "year_published": {"$exists": 1},
-                    "bibliographic_info.is_open_acess": {"$exists": 1},
+                    "bibliographic_info.is_open_access": {"$ne": None},
+                    "year_published": {"$ne": None},
                 },
-                {"year_published": 1, "bibliographic_info.is_open_acess": 1},
+                {"year_published": 1, "bibliographic_info.is_open_access": 1},
             ):
                 data.append(work)
 

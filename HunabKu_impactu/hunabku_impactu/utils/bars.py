@@ -176,12 +176,12 @@ class bars:
         for work in data:
             year = work["year_published"]
             if year in result.keys():
-                if work["bibliographic_info"]["is_open_acess"]:
+                if work["bibliographic_info"]["is_open_access"]:
                     result[year]["open"] += 1
                 else:
                     result[year]["closed"] += 1
             else:
-                if work["bibliographic_info"]["is_open_acess"]:
+                if work["bibliographic_info"]["is_open_access"]:
                     result[year] = {"open": 1, "closed": 0}
                 else:
                     result[year] = {"open": 0, "closed": 1}

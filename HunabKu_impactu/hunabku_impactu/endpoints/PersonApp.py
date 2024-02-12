@@ -390,9 +390,9 @@ class PersonApp(HunabkuPluginBase):
             {
                 "authors.id": ObjectId(idx),
                 "year_published": {"$exists": 1},
-                "bibliographic_info.is_open_acess": {"$exists": 1},
+                "bibliographic_info.is_open_access": {"$exists": 1},
             },
-            {"year_published": 1, "bibliographic_info.is_open_acess": 1},
+            {"year_published": 1, "bibliographic_info.is_open_access": 1},
         ):
             data.append(work)
 
