@@ -1463,7 +1463,12 @@ class AffiliationApp(HunabkuPluginBase):
                 {"affiliations.id": ObjectId(idx)}, {"affiliations": 1}
             ):
                 pipeline = [
-                    {"$match": {"authors.id": author["_id"]}},
+                    {
+                        "$match": {
+                            "authors.id": author["_id"],
+                            "date_published": {"$ne": None},
+                        }
+                    },
                     {"$project": {"source": 1, "date_published": 1}},
                     {
                         "$lookup": {
@@ -1480,7 +1485,12 @@ class AffiliationApp(HunabkuPluginBase):
                     data.append(work)
         else:
             pipeline = [
-                {"$match": {"authors.affiliations.id": ObjectId(idx)}},
+                {
+                    "$match": {
+                        "authors.affiliations.id": ObjectId(idx),
+                        "date_published": {"$ne": None},
+                    }
+                },
                 {"$project": {"source": 1, "date_published": 1}},
                 {
                     "$lookup": {
