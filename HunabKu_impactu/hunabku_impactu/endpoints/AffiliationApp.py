@@ -1211,8 +1211,6 @@ class AffiliationApp(HunabkuPluginBase):
             return {"plot": None}
 
     def get_products_by_subject(self, idx, level=0, typ=None):
-        if not level:
-            level = 0
         data = []
         if typ in ["group", "department", "faculty"]:
             for author in self.colav_db["person"].find(
@@ -1367,7 +1365,9 @@ class AffiliationApp(HunabkuPluginBase):
                 {"affiliations.id": ObjectId(idx)}, {"affiliations": 1}
             ):
                 pipeline = [
-                    {"$match": {"authors.id": author["_id"]}},
+                    {
+                        "$match": {"authors.id": author["_id"], "date_published": {"$ne": None}},
+                    },
                     {
                         "$project": {
                             "authors": 1,
@@ -1392,13 +1392,18 @@ class AffiliationApp(HunabkuPluginBase):
                             "year_published": 1,
                         }
                     },
-                    {"$match": {"author.birthdate": {"$ne": -1, "$exists": 1}}},
+                    {"$match": {"author.birthdate": {"$nin": [-1, ""], "$exists": 1}}},
                 ]
                 for work in self.colav_db["works"].aggregate(pipeline):
                     data.append(work)
         else:
             pipeline = [
-                {"$match": {"authors.affiliations.id": ObjectId(idx)}},
+                {
+                    "$match": {
+                        "authors.affiliations.id": ObjectId(idx),
+                        "date_published": {"$ne": None},
+                    }
+                },
                 {"$project": {"authors": 1, "date_published": 1, "year_published": 1}},
                 {"$unwind": "$authors"},
                 {"$match": {"authors.affiliations.id": ObjectId(idx)}},
@@ -1417,7 +1422,7 @@ class AffiliationApp(HunabkuPluginBase):
                         "year_published": 1,
                     }
                 },
-                {"$match": {"author.birthdate": {"$ne": -1, "$exists": 1}}},
+                {"$match": {"author.birthdate": {"$nin": [-1, ""], "$exists": 1}}},
             ]
             for work in self.colav_db["works"].aggregate(pipeline):
                 data.append(work)
