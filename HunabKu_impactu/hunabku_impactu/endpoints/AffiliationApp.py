@@ -116,9 +116,11 @@ class AffiliationApp(HunabkuPluginBase):
             entry = {
                 "id": affiliation["_id"],
                 "name": name,
-                "citations": affiliation["citations_count"]
-                if "citations_count" in affiliation.keys()
-                else None,
+                "citations": (
+                    affiliation["citations_count"]
+                    if "citations_count" in affiliation.keys()
+                    else None
+                ),
                 "external_urls": [
                     ext
                     for ext in affiliation["external_urls"]
@@ -126,15 +128,22 @@ class AffiliationApp(HunabkuPluginBase):
                 ],
                 "logo": logo,
             }
-            entry.update(
-                {"university": affiliation.get("university", None)}
-            ) if typ in ("department", "faculty", "group") else None
+            (
+                entry.update({"university": affiliation.get("university", None)})
+                if typ in ("department", "faculty", "group")
+                else None
+            )
 
-            entry.update({"faculty": affiliation.get("faculty", None)}) if typ in (
-                "department",
-                "faculty",
-                "group",
-            ) else None
+            (
+                entry.update({"faculty": affiliation.get("faculty", None)})
+                if typ
+                in (
+                    "department",
+                    "faculty",
+                    "group",
+                )
+                else None
+            )
 
             return {"data": entry}
         else:
@@ -225,13 +234,15 @@ class AffiliationApp(HunabkuPluginBase):
             "title": "",
             "authors": [],
             "source": {},
-            "year_published": work["year_published"]
-            if "year_published" in work.keys()
-            else None,
+            "year_published": (
+                work["year_published"] if "year_published" in work.keys() else None
+            ),
             "citations_count": work["citations_count"],
-            "open_access_status": work["bibliographic_info"]["open_access_status"]
-            if "open_access_status" in work["bibliographic_info"]
-            else "",
+            "open_access_status": (
+                work["bibliographic_info"]["open_access_status"]
+                if "open_access_status" in work["bibliographic_info"]
+                else ""
+            ),
             "subjects": [],
         }
 
@@ -590,7 +601,6 @@ class AffiliationApp(HunabkuPluginBase):
             data[_data["name"]].append(_data["work"])
 
         return {"plot": self.bars.products_by_affiliation_by_type(data)}
-
 
     def get_citations_by_year(self, idx, typ=None):
         data = []
@@ -1220,13 +1230,7 @@ class AffiliationApp(HunabkuPluginBase):
                         for subject in subjects["subjects"]:
                             if subject["level"] != level:
                                 continue
-                            name = subject["names"][0]["name"]
-                            for n in subject["names"]:
-                                if n["lang"] == "es":
-                                    name = n["name"]
-                                    break
-                                elif n["lang"] == "en":
-                                    name = n["name"]
+                            name = subject.get("name", "No name specified")
                             data.append({"subject": {"name": name}})
         else:
             for work in self.colav_db["works"].find(
@@ -1766,7 +1770,7 @@ class AffiliationApp(HunabkuPluginBase):
                     elif plot == "products_publisher":
                         result = self.get_products_by_publisher(idx, typ=typ)
                     elif plot == "products_subject":
-                        level = self.request.args.get("level")
+                        level = int(self.request.args.get("level"))
                         if not level:
                             level = 0
                         result = self.get_products_by_subject(idx, typ=typ, level=level)
