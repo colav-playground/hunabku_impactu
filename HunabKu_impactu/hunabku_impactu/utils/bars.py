@@ -76,7 +76,7 @@ class bars:
                 if name not in result.keys():
                     result[name] = {}
                 for typ in work["types"]:
-                    if typ["source"] == "scienti":
+                    if typ["source"] == "scienti" and typ["type"] == "Publicado en revista especializada":
                         # if typ["level"]==2:
                         if typ["type"] not in result[name].keys():
                             result[name][typ["type"]] = 1
