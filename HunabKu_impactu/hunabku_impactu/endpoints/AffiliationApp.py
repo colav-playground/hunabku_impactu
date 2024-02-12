@@ -1245,13 +1245,7 @@ class AffiliationApp(HunabkuPluginBase):
                     for subject in subjects["subjects"]:
                         if subject["level"] != level:
                             continue
-                        name = subject["names"][0]["name"]
-                        for n in subject["names"]:
-                            if n["lang"] == "es":
-                                name = n["name"]
-                                break
-                            elif n["lang"] == "en":
-                                name = n["name"]
+                        name = subject.get("name", "No name specified")
                         data.append({"subject": {"name": name}})
 
         result = self.pies.products_by_subject(data)
